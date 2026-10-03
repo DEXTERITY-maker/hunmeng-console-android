@@ -4,7 +4,7 @@
 
 ## Выполненные проверки
 
-- Репозиторий: [DEXTERITY-maker/hunmeng-console-android](https://github.com/DEXTERITY-maker/hunmeng-console-android), закрытый.
+- Репозиторий: [DEXTERITY-maker/hunmeng-console-android](https://github.com/DEXTERITY-maker/hunmeng-console-android), публичный. Видимость изменена по просьбе владельца после проверки Git-истории.
 - Собранный коммит исходников: `93ecaa4cab893a3a2768fec24ac74ff4c976c5cb`.
 - [Успешная сборка GitHub Actions](https://github.com/DEXTERITY-maker/hunmeng-console-android/actions/runs/37150137849), попытка 1.
 - Команда: `./gradlew testDebugUnitTest lintDebug assembleDebug --no-daemon --console=plain`.

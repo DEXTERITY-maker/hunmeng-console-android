@@ -53,7 +53,7 @@ java -Djava.awt.headless=true tools/PrepareLauncherIcon.java design/app-icon-sou
 
 ## Сборка через GitHub Actions
 
-Репозиторий: https://github.com/DEXTERITY-maker/hunmeng-console-android (закрытый).
+Репозиторий: https://github.com/DEXTERITY-maker/hunmeng-console-android (публичный; доступен без входа в GitHub).
 
 1. Откройте вкладку **Actions → Build Android APK → Run workflow**.
 2. После успешной сборки откройте её страницу.
