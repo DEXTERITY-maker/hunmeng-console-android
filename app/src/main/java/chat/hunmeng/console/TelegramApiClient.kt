@@ -59,10 +59,10 @@ class TelegramApiClient private constructor(
         return suspendCancellableCoroutine { continuation ->
             continuation.invokeOnCancellation { networkCall.cancel() }
             val callback = object : Callback {
-                override fun onFailure(call: Call, error: IOException) {
+                override fun onFailure(call: Call, e: IOException) {
                     activeCalls.remove(call)
                     if (continuation.isActive) {
-                        continuation.resumeWithException(safeNetworkError(error, call))
+                        continuation.resumeWithException(safeNetworkError(e, call))
                     }
                 }
 

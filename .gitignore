@@ -9,3 +9,10 @@ captures/
 .cxx/
 .cache/
 .wrapper-gen/
+.env
+.env.*
+*.apk
+*.jks
+*.keystore
+*.pem
+*.key

@@ -66,7 +66,7 @@ class ConsoleViewModel(application: Application) : AndroidViewModel(application)
     private var webhookJob: Job? = null
     private var previewJob: Job? = null
     private var sendJob: Job? = null
-    private val processLifecycle = ProcessLifecycleOwner.get().lifecycle
+    private val processLifecycle get() = ProcessLifecycleOwner.get().lifecycle
     private var foreground = processLifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
     private val handledUpdates = LinkedHashSet<Long>()
 
@@ -143,7 +143,7 @@ class ConsoleViewModel(application: Application) : AndroidViewModel(application)
         polling = null
         nextOffset = null
         handledUpdates.clear()
-        update { it.copy(tokenInput = "", tokenVisible = false, bot = null, isConnected = false, isConnecting = false, isDisconnecting = true, isPolling = false, isPollingTransition = false, webhookUrl = null, webhookDialogVisible = false, isWebhookRemoving = false, status = "disconnecting", sendPreview = null, isPreviewing = false, isSending = false, commandSyncStatus = "idle", lastSuccessfulRequest = null, draft = if (uncertainSend) pendingSend?.text else it.draft, draftRecipient = if (uncertainSend) pendingSend?.chat else it.draftRecipient, draftDelivery = if (uncertainSend) "unknown" else it.draftDelivery, error = if (uncertainSend) unknownDelivery else null) }
+        update { it.copy(tokenInput = "", tokenVisible = false, bot = null, isConnected = false, isConnecting = false, isDisconnecting = true, isPolling = false, isPollingTransition = false, webhookUrl = null, webhookDialogVisible = false, isWebhookRemoving = false, status = "disconnecting", sendPreview = null, isPreviewing = false, isSending = false, commandSyncStatus = "idle", lastSuccessfulRequest = null, draft = if (uncertainSend) pendingSend.text else it.draft, draftRecipient = if (uncertainSend) pendingSend.chat else it.draftRecipient, draftDelivery = if (uncertainSend) "unknown" else it.draftDelivery, error = if (uncertainSend) unknownDelivery else null) }
         viewModelScope.launch {
             jobs.forEach { it.cancelAndJoin() }
             oldPolling?.stop()

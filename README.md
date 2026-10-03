@@ -1,6 +1,6 @@
 # Hunmeng Console для Android
 
-Нативное приложение Kotlin/Jetpack Compose с функциями веб-консоли **v0.0.3beta**. Идентификатор: `chat.hunmeng.console`; Android `versionName`: `0.0.3-beta`, `versionCode`: `1`; Android 8.0+ (API 26).
+Нативное приложение Kotlin/Jetpack Compose с функциями [исходной веб-консоли](https://telegram-bot-console.hunmeng.chatgpt.site) **v0.0.3beta**. Идентификатор: `chat.hunmeng.console`; Android `versionName`: `0.0.3-beta`, `versionCode`: `1`; Android 8.0+ (API 26).
 
 ## Возможности
 
@@ -13,6 +13,8 @@
 - Ручная отправка: проверка получателя через `getChat`, полный предпросмотр и подтверждение. Лимит 1–4096 Unicode-кодовых точек. Неизвестная доставка сохраняет черновик, автоматического повтора нет.
 - Подтверждаемое удаление webhook с `drop_pending_updates=false`.
 - Изменения, история, возможности и версия. Проверка обновлений пока не настроена: версия веб-сайта не используется как источник APK.
+
+Значок приложения перенесён из [favicon веб-консоли](https://telegram-bot-console.hunmeng.chatgpt.site/favicon.svg): синий фон и белый символ терминала.
 
 ## Работа с ботом
 
@@ -78,17 +80,22 @@ Debug-ключ создаётся GitHub runner и может отличатьс
 ## Данные и ограничения
 
 - Токен хранится только в памяти процесса: без файлов, SavedStateHandle, rememberSaveable, логов, резервных копий и секретов CI. При отключении ссылка на токен очищается; после уничтожения процесса ввод нужен снова.
-- Приветствие, язык и эхо сохраняются в SharedPreferences. Android backup отключён.
+- Приветствие, язык и эхо сохраняются в SharedPreferences. Облачное резервное копирование и перенос данных между устройствами отключены явными правилами Android.
 - Только HTTPS к `api.telegram.org`, обычная TLS-проверка, перенаправления и автоматический повтор отправки отключены.
 - В MVP polling работает на переднем плане. Уход в фон останавливает цикл; при возвращении запуск предлагается вручную. Поворот экрана сохраняет ViewModel и не создаёт второй цикл.
 - Журнал, токен и черновик не переживают уничтожение процесса. Чувствительные фрагменты не выводятся в журнал.
 - Приложение не является универсальным Telegram-клиентом и не получает старую историю сообщений через Bot API.
 - Реальное подключение и визуальную проверку на телефоне владелец выполняет в установленном приложении; сборка и mock-тесты не подменяют эту проверку.
 
+## Результат сборки
+
+Фактический запуск CI, количество тестов, отчёт lint и контрольная сумма APK записаны в [BUILD-RESULT.md](BUILD-RESULT.md).
+
 ## Официальные источники
 
 - [Jetpack Compose](https://developer.android.com/develop/ui/compose/setup)
 - [AGP 8.13 и совместимость](https://developer.android.com/build/releases/agp-8-13-0-release-notes)
 - [Сборка Android из командной строки](https://developer.android.com/build/building-cmdline)
+- [Правила резервного копирования Android](https://developer.android.com/identity/data/autobackup)
 - [Telegram Bot API](https://core.telegram.org/bots/api)
 - [GitHub Actions и Gradle](https://docs.github.com/en/actions/tutorials/build-and-test-code/java-with-gradle)
