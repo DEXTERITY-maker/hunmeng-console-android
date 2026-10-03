@@ -1,16 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <group android:scaleX="3" android:scaleY="3" android:translateX="6" android:translateY="6">
-        <path
-            android:fillColor="@android:color/transparent"
-            android:strokeColor="#FFFFFF"
-            android:strokeWidth="2.5"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round"
-            android:pathData="M8,10 L14,16 L8,22 M17,22 H24" />
-    </group>
-</vector>
+<!-- The PNG contains proportional padding, so scaling keeps the robot visible. -->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/ic_launcher_artwork"
+    android:gravity="fill"
+    android:filter="true" />

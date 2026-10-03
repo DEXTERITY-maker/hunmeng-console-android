@@ -210,9 +210,9 @@ private fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleViewModel) {
 
             SectionCard(t("Обновление", "Updates")) {
                 Text(t("Что изменилось в $DISPLAY_VERSION", "Changes in $DISPLAY_VERSION"), style = MaterialTheme.typography.titleSmall)
-                Text(t("Безопасное подключение бота, получение обновлений без второго цикла, меню команд на RU/EN и отправка точного текста после проверки получателя.", "Safe bot connection, a single polling loop, RU/EN command menus, and sending the exact text after recipient review."), style = MaterialTheme.typography.bodySmall)
+                Text(t("Новый значок приложения: белый робот-терминал на синем фоне. Подготовлены изображения для разных плотностей экрана и адаптивная иконка Android.", "New application icon: a white terminal robot on a blue background. Includes density-specific images and an Android adaptive icon."), style = MaterialTheme.typography.bodySmall)
                 Text(t("Журнал последних 150 событий, пауза в фоне и черновик при неудачной или неизвестной доставке.", "The last 150 events, a background pause, and a draft after rejected or unknown delivery."), style = MaterialTheme.typography.bodySmall)
-                Text(t("История версий: $DISPLAY_VERSION — текущая бета-версия.", "Version history: $DISPLAY_VERSION — the current beta release."), style = MaterialTheme.typography.bodySmall)
+                Text(t("История версий: $DISPLAY_VERSION — пользовательская иконка; v0.0.3beta — первая Android-сборка.", "Version history: $DISPLAY_VERSION — custom application icon; v0.0.3beta — first Android build."), style = MaterialTheme.typography.bodySmall)
                 Text(updateSourceUnavailable.text(state.language), style = MaterialTheme.typography.bodySmall)
                 OutlinedButton(onClick = vm::checkUpdates) { Text(t("Проверить обновления", "Check for updates")) }
                 if (state.versionCheckRequested) Text(t("Проверка не выполнена: источник обновлений не задан.", "Check not performed: no update source is configured."), style = MaterialTheme.typography.bodySmall)
@@ -220,7 +220,7 @@ private fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleViewModel) {
 
             SectionCard(t("Версия", "Version")) {
                 Text("Hunmeng Console $DISPLAY_VERSION", style = MaterialTheme.typography.titleMedium)
-                Text(t("Версия Android-приложения: 0.0.3-beta", "Android application version: 0.0.3-beta"), style = MaterialTheme.typography.bodySmall)
+                Text(t("Версия Android-приложения: 0.0.4-beta", "Android application version: 0.0.4-beta"), style = MaterialTheme.typography.bodySmall)
                 Text(t("Я могу подключить бота, получать сообщения, отвечать на команды, включать эхо и отправлять текст после твоего подтверждения.", "I can connect a bot, receive messages, answer commands, enable echo, and send text after your confirmation."), style = MaterialTheme.typography.bodySmall)
                 Text(t("Для отправки бот должен иметь доступ к выбранному чату.", "The bot must have access to the selected chat to send messages."), style = MaterialTheme.typography.bodySmall)
             }

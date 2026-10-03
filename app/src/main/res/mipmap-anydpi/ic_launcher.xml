@@ -1,18 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Geometry and colors from the original console's /favicon.svg. -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="48dp"
-    android:height="48dp"
-    android:viewportWidth="32"
-    android:viewportHeight="32">
-    <path
-        android:fillColor="#1687EB"
-        android:pathData="M7,0 H25 Q32,0 32,7 V25 Q32,32 25,32 H7 Q0,32 0,25 V7 Q0,0 7,0 Z" />
-    <path
-        android:fillColor="@android:color/transparent"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="2.5"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M8,10 L14,16 L8,22 M17,22 H24" />
-</vector>
+<!-- All supported devices (minSdk 26) use this adaptive icon. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>

@@ -1,6 +1,6 @@
 # Hunmeng Console для Android
 
-Нативное приложение Kotlin/Jetpack Compose с функциями [исходной веб-консоли](https://telegram-bot-console.hunmeng.chatgpt.site) **v0.0.3beta**. Идентификатор: `chat.hunmeng.console`; Android `versionName`: `0.0.3-beta`, `versionCode`: `1`; Android 8.0+ (API 26).
+Нативное приложение Kotlin/Jetpack Compose с функциями [исходной веб-консоли](https://telegram-bot-console.hunmeng.chatgpt.site) **v0.0.4beta**. Идентификатор: `chat.hunmeng.console`; Android `versionName`: `0.0.4-beta`, `versionCode`: `2`; Android 8.0+ (API 26).
 
 ## Возможности
 
@@ -14,7 +14,9 @@
 - Подтверждаемое удаление webhook с `drop_pending_updates=false`.
 - Изменения, история, возможности и версия. Проверка обновлений пока не настроена: версия веб-сайта не используется как источник APK.
 
-Значок приложения перенесён из [favicon веб-консоли](https://telegram-bot-console.hunmeng.chatgpt.site/favicon.svg): синий фон и белый символ терминала.
+Для следующего обновления подключена скачанная владельцем иконка: белый робот-терминал на синем фоне. Исходник: `design/app-icon-source.png`; Android-ресурсы подготовлены для mdpi, hdpi, xhdpi, xxhdpi и xxxhdpi.
+
+Текущие исходники готовятся к v0.0.4beta. Последний проверенный и установленный APK — v0.0.3beta. Сведения о следующем обновлении: [NEXT-UPDATE.md](NEXT-UPDATE.md).
 
 ## Работа с ботом
 
@@ -26,6 +28,20 @@
 6. Для ручной отправки введите ID или @username, текст, посмотрите полный предпросмотр и подтвердите отправку.
 
 Бот не может первым начать личный диалог: получатель должен сначала написать боту. Для канала нужны соответствующие права. В случае неизвестной доставки сначала проверьте чат, затем решите, отправлять ли сохранённый черновик снова.
+
+## Расположение проекта
+
+Полный проект находится в `/storage/emulated/0/Hunmeng Console` и доступен файловому менеджеру Android. Старый путь `~/hunmeng-console-android` ведёт в эту папку через символическую ссылку.
+
+В общей памяти Android используйте `sh gradlew` вместо прямого запуска `./gradlew`. Основной путь сборки APK — GitHub Actions.
+
+## Подготовка иконки
+
+```sh
+java -Djava.awt.headless=true tools/PrepareLauncherIcon.java design/app-icon-source.png app/src/main/res
+```
+
+Генератор масштабирует исходное изображение целиком и добавляет прозрачные поля в адаптивном слое. Предпросмотр круглого значка сохраняется в `.cache/user-icon-circle-preview.png`.
 
 ## Сборка через GitHub Actions
 

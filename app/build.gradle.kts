@@ -15,8 +15,8 @@ android {
         applicationId = "chat.hunmeng.console"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.0.3-beta"
+        versionCode = 2
+        versionName = "0.0.4-beta"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true

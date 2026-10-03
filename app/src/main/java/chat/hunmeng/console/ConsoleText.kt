@@ -24,7 +24,7 @@ data class ConsoleEventRecord(val time: String, val type: ConsoleEventType, val 
 /** The exact recipient and text the user saw in the confirmation dialog. */
 data class SendPreview(val chat: ChatPreview, val text: String)
 
-const val DISPLAY_VERSION = "v0.0.3beta"
+const val DISPLAY_VERSION = "v0.0.4beta"
 
 val updateSourceUnavailable = ConsoleText(
     "Проверка обновлений пока не настроена. Источник новой версии не задан.",
