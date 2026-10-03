@@ -37,7 +37,7 @@ class ConsoleTextTest {
     }
 
     @Test fun allPermanentPollingStatesHaveBothTranslations() {
-        for (status in listOf("authentication_failed", "conflict", "error", "starting", "stopped", "background")) {
+        for (status in listOf("authentication_failed", "permission_denied", "conflict", "error", "starting", "stopped", "background")) {
             assertFalse(statusText(status).text(UiLanguage.RU).isBlank())
             assertFalse(statusText(status).text(UiLanguage.EN).isBlank())
             assertFalse(statusText(status).text(UiLanguage.EN) == "Disconnected")

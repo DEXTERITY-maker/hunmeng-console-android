@@ -104,6 +104,7 @@ fun statusText(status: String): ConsoleText = when (status) {
     "webhook" -> ConsoleText("Webhook активен", "Webhook active")
     "background" -> ConsoleText("Пауза в фоне", "Paused in background")
     "authentication_failed" -> ConsoleText("Telegram отклонил токен", "Telegram rejected the token")
+    "permission_denied" -> ConsoleText("Telegram запретил действие: проверьте права бота", "Telegram denied the action: check bot permissions")
     "error" -> ConsoleText("Ошибка", "Error")
     else -> ConsoleText("Отключено", "Disconnected")
 }

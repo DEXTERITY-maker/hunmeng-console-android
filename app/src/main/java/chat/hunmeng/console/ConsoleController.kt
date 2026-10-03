@@ -132,7 +132,7 @@ class ConsoleController(
     }
 
     private fun runDiagnostic(client: TelegramApiClient, generation: Long, isNew: Boolean) {
-        update { it.copy(isChecking = true, isConnecting = isNew, status = if (isNew) "connecting" else "checking", checks = ConnectionChecks(), connectionError = null, webhookError = null) }
+        update { it.copy(isChecking = true, isConnecting = isNew, status = if (isNew) "connecting" else "checking", checks = ConnectionChecks(), webhookDialogVisible = false, connectionError = null, webhookError = null) }
         connectJob = scope.launch {
             var retained = !isNew
             try {
@@ -249,8 +249,8 @@ class ConsoleController(
                 onStatus = { status ->
                     if (generation == session) {
                         val previous = state.value.status
-                        update { it.copy(status = if (!foreground) "background" else status, isPolling = controller.isRunning(), lastSuccessfulRequest = if (status == "connected") now() else it.lastSuccessfulRequest, lastSuccessAt = if (status == "connected") clock() else it.lastSuccessAt, pollingError = if (status in setOf("offline", "retrying", "conflict", "authentication_failed", "error")) statusText(status) else null) }
-                        if (previous != status && status in setOf("offline", "retrying", "conflict", "authentication_failed", "error")) addEvent(ConsoleEventType.POLLING, statusText(status), isError = true)
+                        update { it.copy(status = if (!foreground) "background" else status, isPolling = controller.isRunning(), lastSuccessfulRequest = if (status == "connected") now() else it.lastSuccessfulRequest, lastSuccessAt = if (status == "connected") clock() else it.lastSuccessAt, pollingError = if (status in setOf("offline", "retrying", "conflict", "authentication_failed", "permission_denied", "error")) statusText(status) else null) }
+                        if (previous != status && status in setOf("offline", "retrying", "conflict", "authentication_failed", "permission_denied", "error")) addEvent(ConsoleEventType.POLLING, statusText(status), isError = true)
                     }
                 },
             )

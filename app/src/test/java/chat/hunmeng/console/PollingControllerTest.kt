@@ -106,7 +106,7 @@ class PollingControllerTest {
     }
 
     @Test fun authenticationAndConflictTerminateBeforeReportingTheirStatus() = runTest {
-        for ((code, expected) in listOf(401 to "authentication_failed", 403 to "authentication_failed", 409 to "conflict")) {
+        for ((code, expected) in listOf(401 to "authentication_failed", 403 to "permission_denied", 409 to "conflict")) {
             val controller = PollingController(this)
             var calls = 0
             val statuses = mutableListOf<Pair<String, Boolean>>()

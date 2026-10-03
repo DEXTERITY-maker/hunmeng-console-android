@@ -83,7 +83,7 @@ internal suspend fun checkConnection(
 fun connectionReport(state: ConsoleUiState, versionName: String, versionCode: Int): String? {
     val checks = state.checks
     if (checks.checkedAt == null || state.isChecking) return null
-    val allowedBotStates = setOf("disconnected", "connecting", "disconnecting", "starting", "ready", "stopped", "connected", "retrying", "offline", "conflict", "webhook", "background", "authentication_failed", "error", "checking")
+    val allowedBotStates = setOf("disconnected", "connecting", "disconnecting", "starting", "ready", "stopped", "connected", "retrying", "offline", "conflict", "webhook", "background", "authentication_failed", "permission_denied", "error", "checking")
     return JSONObject()
         .put("app", "Hunmeng Console")
         .put("platform", "android")

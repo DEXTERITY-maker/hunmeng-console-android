@@ -171,12 +171,12 @@ private fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController) {
                     Button(onClick = vm::connect, enabled = !state.isConnected && !connectionBusy) { Text(if (state.isConnecting) t("Подключение…", "Connecting…") else t("Подключить", "Connect")) }
                     OutlinedButton(onClick = vm::disconnect, enabled = (state.isConnected || state.isConnecting) && !state.isDisconnecting) { Text(t("Отключить", "Disconnect")) }
                 }
-                Text(statusText(state.status).text(state.language), color = if (state.status in setOf("error", "authentication_failed", "conflict")) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                Text(statusText(state.status).text(state.language), color = if (state.status in setOf("error", "authentication_failed", "permission_denied", "conflict")) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                 state.bot?.let { bot -> Text(t("Бот: ", "Bot: ") + (bot.username?.let { "@$it" } ?: bot.firstName), style = MaterialTheme.typography.bodyMedium) }
                 state.lastSuccessfulRequest?.let { Text(t("Последний успешный запрос: ", "Last successful request: ") + it, style = MaterialTheme.typography.bodySmall) }
                 state.webhookUrl?.takeIf { it.isNotBlank() }?.let {
                     Text(t("Webhook активен: получение обновлений недоступно", "Webhook is active: polling is unavailable"), color = MaterialTheme.colorScheme.error)
-                    OutlinedButton(onClick = vm::requestWebhookRemoval, enabled = !state.isWebhookRemoving) { Text(t("Удалить webhook…", "Remove webhook…")) }
+                    OutlinedButton(onClick = vm::requestWebhookRemoval, enabled = canCheckConnection(state)) { Text(t("Удалить webhook…", "Remove webhook…")) }
                 }
                 state.connectionError?.let { Text(it.text(state.language), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
             }

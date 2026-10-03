@@ -52,7 +52,8 @@ class PollingController(private val scope: CoroutineScope) {
                         if (updates.isEmpty()) delay(250)
                     } catch (error: TelegramApiException) {
                         when (error.errorCode) {
-                            401, 403 -> { terminalStatus = "authentication_failed"; break }
+                            401 -> { terminalStatus = "authentication_failed"; break }
+                            403 -> { terminalStatus = "permission_denied"; break }
                             409 -> { terminalStatus = "conflict"; break }
                             in 400..499 -> if (error.errorCode != 429) {
                                 terminalStatus = "error"
