@@ -10,6 +10,6 @@
 - Foreground MVP only. Do not add a persistent background service.
 - README.md and BUILD-RESULT.md record real builds and limitations. Never claim APK/device validation without evidence.
 
-- Project location: /storage/emulated/0/Hunmeng Console. Run shell scripts via sh on shared Android storage. Keep Git fileMode disabled locally there; CI clones preserve tracked executable modes.
+- Project location: /storage/emulated/0/Hunmeng Console. Run shell scripts via sh on shared Android storage. Invoke git with -c safe.directory="/storage/emulated/0/Hunmeng Console"; do not change global trust configuration. Keep Git fileMode disabled locally there; CI clones preserve tracked executable modes.
 - The owner supplied design/app-icon-source.png. Use tools/PrepareLauncherIcon.java for deterministic resizing/padding. Do not replace this artwork with generated designs or the old favicon.
 - NEXT-UPDATE.md records prepared v0.0.4beta changes. BUILD-RESULT.md records the tested v0.0.3beta APK until an actual new build is verified.
