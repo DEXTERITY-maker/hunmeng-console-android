@@ -2,6 +2,14 @@
 
 Нативное приложение Kotlin/Jetpack Compose с функциями [исходной веб-консоли](https://telegram-bot-console.hunmeng.chatgpt.site) **v0.0.4beta**. Идентификатор: `chat.hunmeng.console`; Android `versionName`: `0.0.4-beta`, `versionCode`: `2`; Android 8.0+ (API 26).
 
+## Скачать APK
+
+**[Скачать Hunmeng Console v0.0.4beta для Android 8.0+](https://github.com/DEXTERITY-maker/hunmeng-console-android/releases/download/v0.0.4-beta/Hunmeng-Console-0.0.4-beta.apk)**
+
+[Страница выпуска](https://github.com/DEXTERITY-maker/hunmeng-console-android/releases/tag/v0.0.4-beta) · [Контрольная сумма SHA-256](https://github.com/DEXTERITY-maker/hunmeng-console-android/releases/download/v0.0.4-beta/Hunmeng-Console-0.0.4-beta.apk.sha256)
+
+Для скачивания вход в GitHub не нужен. Это бета-версия с новой иконкой. Подпись отличается от APK v0.0.3beta: установка поверх той сборки не поддерживается.
+
 ## Возможности
 
 - Подключение Telegram-бота через `getMe`: скрытый ввод токена, показ по кнопке, имя/username и отключение.
@@ -14,9 +22,9 @@
 - Подтверждаемое удаление webhook с `drop_pending_updates=false`.
 - Изменения, история, возможности и версия. Проверка обновлений пока не настроена: версия веб-сайта не используется как источник APK.
 
-Для следующего обновления подключена скачанная владельцем иконка: белый робот-терминал на синем фоне. Исходник: `design/app-icon-source.png`; Android-ресурсы подготовлены для mdpi, hdpi, xhdpi, xxhdpi и xxxhdpi.
+В v0.0.4beta включена скачанная владельцем иконка: белый робот-терминал на синем фоне. Исходник: `design/app-icon-source.png`; Android-ресурсы подготовлены для mdpi, hdpi, xhdpi, xxhdpi и xxxhdpi.
 
-Текущие исходники готовятся к v0.0.4beta. Последний проверенный и установленный APK — v0.0.3beta. Сведения о следующем обновлении: [NEXT-UPDATE.md](NEXT-UPDATE.md).
+APK v0.0.4beta собран и опубликован в Releases. Сведения об обновлении: [NEXT-UPDATE.md](NEXT-UPDATE.md).
 
 ## Работа с ботом
 
