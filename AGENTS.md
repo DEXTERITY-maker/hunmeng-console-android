@@ -12,4 +12,4 @@
 
 - Project location: /storage/emulated/0/Hunmeng Console. Run shell scripts via sh on shared Android storage. Invoke git with -c safe.directory="/storage/emulated/0/Hunmeng Console"; do not change global trust configuration. Keep Git fileMode disabled locally there; CI clones preserve tracked executable modes.
 - The owner supplied design/app-icon-source.png. Use tools/PrepareLauncherIcon.java for deterministic resizing/padding. Do not replace this artwork with generated designs or the old favicon.
-- NEXT-UPDATE.md records published v0.0.4beta changes. BUILD-RESULT.md records the tested v0.0.4beta APK; reports/build-v0.0.3-beta.md preserves the previous build report.
+- NEXT-UPDATE.md records implemented web feature synchronization and pending owner device checks. BUILD-RESULT.md records the tested v0.0.4beta functional APK (release tag v0.0.4-beta-sync); reports/build-v0.0.3-beta.md and reports/build-v0.0.4-beta-icon.md preserve prior reports. Keep diagnostics allowlisted, command events argument-free, event error flags structured and all tabs attached to one in-memory ConsoleController. HTTP 403 is a permissions error, not a rejected token.

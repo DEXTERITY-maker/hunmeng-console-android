@@ -4,14 +4,19 @@
 
 ## Скачать APK
 
-**[Скачать Hunmeng Console v0.0.4beta для Android 8.0+](https://github.com/DEXTERITY-maker/hunmeng-console-android/releases/download/v0.0.4-beta/Hunmeng-Console-0.0.4-beta.apk)**
+**[Скачать Hunmeng Console v0.0.4beta для Android 8.0+](https://github.com/DEXTERITY-maker/hunmeng-console-android/releases/download/v0.0.4-beta-sync/Hunmeng-Console-0.0.4-beta-sync.apk)**
 
-[Страница выпуска](https://github.com/DEXTERITY-maker/hunmeng-console-android/releases/tag/v0.0.4-beta) · [Контрольная сумма SHA-256](https://github.com/DEXTERITY-maker/hunmeng-console-android/releases/download/v0.0.4-beta/Hunmeng-Console-0.0.4-beta.apk.sha256)
+[Страница выпуска](https://github.com/DEXTERITY-maker/hunmeng-console-android/releases/tag/v0.0.4-beta-sync) · [Контрольная сумма SHA-256](https://github.com/DEXTERITY-maker/hunmeng-console-android/releases/download/v0.0.4-beta-sync/Hunmeng-Console-0.0.4-beta-sync.apk.sha256)
 
-Для скачивания вход в GitHub не нужен. Это бета-версия с новой иконкой. Подпись отличается от APK v0.0.3beta: установка поверх той сборки не поддерживается.
+Для скачивания вход в GitHub не нужен. Это сборка с новой иконкой и пятью функциями из NEXT-UPDATE.md. Версия сохранена: 0.0.4-beta, код 2. Подпись отличается от прежних APK v0.0.3beta и v0.0.4beta с иконкой: установка поверх них не поддерживается. Старый выпуск сохранён отдельно.
 
 ## Возможности
 
+- Пошаговая диагностика: консоль, Telegram, авторизация и webhook; повтор без ввода токена. Сетевая ошибка не объявляет токен неверным, а ошибка webhook после getMe сохраняет проверенную авторизацию.
+- Безопасный JSON-отчёт по разрешённому списку полей, копирование и ручной вариант при сбое clipboard.
+- Вкладки «Бот / Сообщение / События»; сворачиваемые ответы, сохранение черновика и сессии при переключении.
+- Поиск событий, фильтры «Все / Ошибки / Команды» и копирование безопасной записи. Команды записываются без аргументов.
+- Ссылка @BotFather возле токена с обработкой отсутствия приложения.
 - Подключение Telegram-бота через `getMe`: скрытый ввод токена, показ по кнопке, имя/username и отключение.
 - Интерфейс, ошибки, события и стандартные ответы RU/EN. Язык, пользовательское приветствие и эхо сохраняются локально.
 - Один отменяемый цикл long polling с offset, восстановлением сети, экспоненциальной задержкой и `retry_after`.
@@ -24,7 +29,7 @@
 
 В v0.0.4beta включена скачанная владельцем иконка: белый робот-терминал на синем фоне. Исходник: `design/app-icon-source.png`; Android-ресурсы подготовлены для mdpi, hdpi, xhdpi, xxhdpi и xxxhdpi.
 
-APK v0.0.4beta собран и опубликован в Releases. Сведения об обновлении: [NEXT-UPDATE.md](NEXT-UPDATE.md).
+APK с синхронизацией функций собран: 54 теста пройдены, lint — 0 ошибок и 25 предупреждений; подпись и целостность проверены. Он опубликован в отдельном выпуске v0.0.4-beta-sync. Установка и UI на телефоне пока не подтверждены. Сведения об обновлении: [NEXT-UPDATE.md](NEXT-UPDATE.md).
 
 ## Работа с ботом
 
