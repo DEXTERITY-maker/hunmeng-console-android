@@ -29,7 +29,7 @@ internal class EncryptedSessionVault(context: Context) {
 
     /** A stored payload must still be verified against the auth server before granting access. */
     @Synchronized fun load(): ByteArray? {
-        if (!file.exists()) return null
+        if (!file.baseFile.exists() && !File(file.baseFile.path + ".bak").exists()) return null
         // A lost key must not be silently recreated for an existing session.
         check(keyStore.containsAlias(KEY_ALIAS)) { "Session key unavailable" }
         val encrypted = file.openRead().use { input ->
@@ -50,7 +50,7 @@ internal class EncryptedSessionVault(context: Context) {
     @Synchronized fun erase() {
         file.delete()
         if (keyStore.containsAlias(KEY_ALIAS)) keyStore.deleteEntry(KEY_ALIAS)
-        check(!file.exists() && !keyStore.containsAlias(KEY_ALIAS)) { "Session cleanup failed" }
+        check(listOf(file.baseFile, File(file.baseFile.path + ".bak"), File(file.baseFile.path + ".new")).none { it.exists() } && !keyStore.containsAlias(KEY_ALIAS)) { "Session cleanup failed" }
     }
 
     private fun key(): SecretKey {

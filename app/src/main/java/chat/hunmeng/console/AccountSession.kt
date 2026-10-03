@@ -1,6 +1,7 @@
 package chat.hunmeng.console
 
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -85,6 +86,8 @@ internal class AccountSessionCoordinator(
                 return@withLock
             }
             activate(saved, lease, persist = false)
+        } catch (_: TimeoutCancellationException) {
+            if (lease == generation.get()) _state.value = AccountSessionState(AccountPhase.UNAVAILABLE)
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (_: Exception) {
             if (lease == generation.get()) _state.value = AccountSessionState(AccountPhase.UNAVAILABLE)
@@ -96,6 +99,9 @@ internal class AccountSessionCoordinator(
         val lease = generation.incrementAndGet()
         _state.value = AccountSessionState(AccountPhase.RESTORING)
         try { activate(record, lease, persist = true) }
+        catch (_: TimeoutCancellationException) {
+            if (lease == generation.get()) _state.value = AccountSessionState(AccountPhase.UNAVAILABLE)
+        }
         catch (cancelled: CancellationException) { throw cancelled }
         catch (_: Exception) {
             if (lease == generation.get()) _state.value = AccountSessionState(AccountPhase.UNAVAILABLE)
