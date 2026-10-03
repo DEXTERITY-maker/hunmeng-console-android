@@ -91,8 +91,8 @@ class ConnectionDiagnosticsTest {
         )
         val report = connectionReport(state, "0.0.4-beta", 2)!!
         val json = JSONObject(report)
-        assertEquals(setOf("app", "platform", "version", "version_name", "version_code", "checked_at", "checks", "error_code", "failure_source", "bot_state", "last_success_at"), json.keySet())
-        assertEquals(setOf("console", "telegram", "authorization", "webhook"), json.getJSONObject("checks").keySet())
+        assertEquals(setOf("app", "platform", "version", "version_name", "version_code", "checked_at", "checks", "error_code", "failure_source", "bot_state", "last_success_at"), json.keys().asSequence().toSet())
+        assertEquals(setOf("console", "telegram", "authorization", "webhook"), json.getJSONObject("checks").keys().asSequence().toSet())
         for (secret in listOf(token, "private_username", "987654321", "Private bot", "-1001234567890", "Private message", "Draft secret", "Secret search", "Custom secret", "https://", "exception")) assertFalse(secret, report.contains(secret))
         assertEquals("error", json.getString("bot_state"))
         assertEquals(instant.toString(), json.getString("checked_at"))
