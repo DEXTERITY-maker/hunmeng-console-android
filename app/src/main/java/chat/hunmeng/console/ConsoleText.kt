@@ -8,6 +8,7 @@ data class ConsoleText(val ru: String, val en: String) {
 enum class ConsoleEventType(val label: ConsoleText) {
     CONNECTION(ConsoleText("подключение", "connection")),
     COMMANDS(ConsoleText("команды", "commands")),
+    RECEIVED_COMMAND(ConsoleText("команда", "command")),
     POLLING(ConsoleText("обновления", "polling")),
     WEBHOOK(ConsoleText("webhook", "webhook")),
     UPDATE(ConsoleText("сообщение", "message")),
@@ -19,7 +20,30 @@ enum class ConsoleEventType(val label: ConsoleText) {
     ERROR(ConsoleText("ошибка", "error")),
 }
 
-data class ConsoleEventRecord(val time: String, val type: ConsoleEventType, val detail: ConsoleText)
+data class ConsoleEventRecord(val time: String, val type: ConsoleEventType, val detail: ConsoleText, val isError: Boolean = type == ConsoleEventType.ERROR)
+
+enum class ConsoleTab(val label: ConsoleText) {
+    BOT(ConsoleText("Бот", "Bot")), MESSAGE(ConsoleText("Сообщение", "Message")), EVENTS(ConsoleText("События", "Events")),
+}
+
+enum class EventFilter(val label: ConsoleText) {
+    ALL(ConsoleText("Все", "All")), ERRORS(ConsoleText("Ошибки", "Errors")), COMMANDS(ConsoleText("Команды", "Commands")),
+}
+
+fun eventDisplayText(event: ConsoleEventRecord, language: UiLanguage): String =
+    "${event.time}  [${event.type.label.text(language)}] ${redactEventText(event.detail.text(language))}"
+
+fun visibleEvents(events: List<ConsoleEventRecord>, query: String, filter: EventFilter, language: UiLanguage): List<ConsoleEventRecord> = events.filter {
+    (when (filter) {
+        EventFilter.ALL -> true
+        EventFilter.ERRORS -> it.isError
+        EventFilter.COMMANDS -> it.type == ConsoleEventType.RECEIVED_COMMAND
+    }) && eventDisplayText(it, language).contains(query.trim(), ignoreCase = true)
+}
+
+/** Commands accepted by this console, without arguments or sender identifiers. */
+fun receivedCommand(update: TelegramUpdate, botUsername: String?): CommandResult? =
+    update.message?.takeUnless { it.fromIsBot }?.text?.let { parseCommand(it, botUsername) }
 
 /** The exact recipient and text the user saw in the confirmation dialog. */
 data class SendPreview(val chat: ChatPreview, val text: String)
@@ -69,6 +93,7 @@ fun consoleError(error: Throwable): ConsoleText = when (error) {
 
 fun statusText(status: String): ConsoleText = when (status) {
     "connecting" -> ConsoleText("Подключение…", "Connecting…")
+    "checking" -> ConsoleText("Проверка подключения…", "Checking connection…")
     "disconnecting" -> ConsoleText("Отключение…", "Disconnecting…")
     "starting" -> ConsoleText("Запуск получения обновлений…", "Starting polling…")
     "ready", "stopped" -> ConsoleText("Готов", "Ready")

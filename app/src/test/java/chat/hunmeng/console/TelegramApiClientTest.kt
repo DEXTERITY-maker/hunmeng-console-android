@@ -21,6 +21,19 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 class TelegramApiClientTest {
+    @Test fun malformedSuccessAndErrorEnvelopesNeverProveAuthorization() = runBlocking {
+        val server = MockWebServer()
+        server.start()
+        val client = TelegramApiClient.forTesting("TEST_TOKEN", server.url("/"), OkHttpClient())
+        try {
+            for (body in listOf("{}", "{\"ok\":false}", "{\"ok\":true,\"result\":{}}", "not JSON")) {
+                server.enqueue(MockResponse().setBody(body))
+                val failure = runCatching { client.getMe() }.exceptionOrNull()
+                assertTrue(failure is TelegramNetworkException)
+            }
+        } finally { client.close(); server.shutdown() }
+    }
+
     @Test fun cancelCoroutineAlsoCancelsTheInFlightHttpRequest() = runBlocking {
         val canceled = CountDownLatch(1)
         val transport = OkHttpClient.Builder().eventListener(object : EventListener() {

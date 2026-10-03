@@ -25,7 +25,7 @@ class TelegramApiClient private constructor(
     token: String,
     private val endpoint: HttpUrl,
     private val http: OkHttpClient,
-) : Closeable {
+) : Closeable, ConnectionApi {
     private val lifecycleLock = Any()
     private var accessToken: String? = token
     private val activeCalls = ConcurrentHashMap.newKeySet<Call>()
@@ -80,7 +80,11 @@ class TelegramApiClient private constructor(
                                 // Do not attach the untrusted response body to an exception.
                                 throw TelegramNetworkException(IOException("Invalid Telegram response (${response.code})"))
                             }
-                            if (!json.optBoolean("ok") || !response.isSuccessful) {
+                            if (json.opt("ok") !is Boolean || (json.optBoolean("ok") && !response.isSuccessful) ||
+                                (!json.optBoolean("ok") && (json.opt("error_code") !is Number || json.optInt("error_code") !in 100..599))) {
+                                throw TelegramNetworkException(IOException("Unrecognized Telegram response"))
+                            }
+                            if (!json.optBoolean("ok")) {
                                 throw TelegramApiException(
                                     errorCode = json.optInt("error_code", response.code),
                                     message = redactForCall(json.optString("description", "Telegram request failed"), call),
@@ -124,14 +128,27 @@ class TelegramApiClient private constructor(
     private fun safeNetworkError(error: Throwable, call: Call): TelegramNetworkException =
         TelegramNetworkException(IOException(redactForCall(error.message ?: "Telegram transport failed", call)))
 
-    suspend fun getMe(): BotUser {
-        val user = call("getMe").getJSONObject("result")
+    override suspend fun getMe(): BotUser {
+        val user = call("getMe").optJSONObject("result")
+            ?: throw TelegramNetworkException(IOException("Invalid getMe response"))
+        if (user.opt("id") !is Number || user.optLong("id") <= 0 || user.opt("first_name") !is String) {
+            throw TelegramNetworkException(IOException("Invalid getMe user"))
+        }
         return BotUser(user.getLong("id"), user.optString("first_name"), user.optNullableString("username"))
     }
 
-    suspend fun getWebhookInfo(): String? = call("getWebhookInfo").getJSONObject("result").optNullableString("url")
+    override suspend fun getWebhookInfo(): String? {
+        val info = call("getWebhookInfo").optJSONObject("result")
+            ?: throw TelegramNetworkException(IOException("Invalid webhook response"))
+        if (info.opt("url") !is String) throw TelegramNetworkException(IOException("Invalid webhook URL field"))
+        return info.getString("url")
+    }
 
-    suspend fun deleteWebhook(): Boolean = call("deleteWebhook", mapOf("drop_pending_updates" to "false")).optBoolean("result")
+    suspend fun deleteWebhook(): Boolean {
+        val result = call("deleteWebhook", mapOf("drop_pending_updates" to "false"))
+        if (result.opt("result") != true) throw TelegramNetworkException(IOException("Invalid deleteWebhook response"))
+        return true
+    }
 
     suspend fun setMyCommands(language: UiLanguage) {
         val commands = JSONArray().apply {
