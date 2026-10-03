@@ -19,7 +19,11 @@ import java.util.concurrent.atomic.AtomicLong
 data class VerifiedAccount(val telegramId: Long, val displayName: String, val username: String?)
 
 /** Deliberately not a data class: diagnostic toString must never include credentials. */
-internal class AccountSessionRecord(val accountId: Long, val serverSession: String, val databaseKey: ByteArray) {
+internal class TelegramApiApplication(val apiId: Int, val apiHash: String) {
+    init { require(apiId > 0 && Regex("[a-fA-F0-9]{32}").matches(apiHash)) }
+    override fun toString() = "TelegramApiApplication([redacted])"
+}
+internal class AccountSessionRecord(val accountId: Long, val serverSession: String, val databaseKey: ByteArray, val apiApplication: TelegramApiApplication? = null) {
     init {
         require(accountId in 1..9_007_199_254_740_991L)
         require(serverSession.length in 32..4096 && !containsCredential(serverSession))
@@ -29,12 +33,14 @@ internal class AccountSessionRecord(val accountId: Long, val serverSession: Stri
     fun clearKey() = databaseKey.fill(0)
     fun encode(): ByteArray = JSONObject().put("version", 1).put("account_id", accountId)
         .put("server_session", serverSession).put("database_key", Base64.getEncoder().encodeToString(databaseKey))
+        .put("api_application", apiApplication?.let { JSONObject().put("id", it.apiId).put("hash", it.apiHash) } ?: JSONObject.NULL)
         .toString().toByteArray(Charsets.UTF_8)
     companion object {
         fun decode(payload: ByteArray): AccountSessionRecord {
             val json = JSONObject(String(payload, Charsets.UTF_8))
             require(json.optInt("version") == 1 && json.opt("account_id") is Number)
-            return AccountSessionRecord(json.getLong("account_id"), json.getString("server_session"), Base64.getDecoder().decode(json.getString("database_key")))
+            val app = json.optJSONObject("api_application")?.let { TelegramApiApplication(it.getInt("id"), it.getString("hash")) }
+            return AccountSessionRecord(json.getLong("account_id"), json.getString("server_session"), Base64.getDecoder().decode(json.getString("database_key")), app)
         }
         fun new(account: VerifiedAccount, serverSession: String) = AccountSessionRecord(account.telegramId, serverSession, ByteArray(32).also { SecureRandom().nextBytes(it) })
     }

@@ -310,7 +310,7 @@ private fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController) {
                     TextButton(onClick = vm::clearEvents) { Text(t("Очистить", "Clear")) }
                 }
                 OutlinedTextField(value = state.eventQuery, onValueChange = vm::setEventQuery, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text(t("Поиск событий", "Search events")) })
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     EventFilter.entries.forEach { filter ->
                         FilterChip(selected = state.eventFilter == filter, onClick = { vm.setEventFilter(filter) }, label = { Text(filter.label.text(state.language)) })
                     }
