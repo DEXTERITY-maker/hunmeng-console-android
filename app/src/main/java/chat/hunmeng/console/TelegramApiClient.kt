@@ -173,11 +173,27 @@ class TelegramApiClient private constructor(
 
     suspend fun getChat(chatIdOrUsername: String): ChatPreview {
         val chat = call("getChat", mapOf("chat_id" to chatIdOrUsername)).getJSONObject("result")
+        if (chat.opt("id") !is Number || chat.optLong("id") == 0L || chat.optString("type") !in setOf("private", "group", "supergroup", "channel")) {
+            throw TelegramNetworkException(IOException("Invalid chat response"))
+        }
         val fullName = listOfNotNull(chat.optNullableString("first_name"), chat.optNullableString("last_name"))
             .filter { it.isNotBlank() }.joinToString(" ")
         val title = chat.optNullableString("title")?.takeIf { it.isNotBlank() }
             ?: fullName.takeIf { it.isNotBlank() } ?: chatIdOrUsername
-        return ChatPreview(chat.getLong("id"), title, chat.optString("type"), chat.optNullableString("username"))
+        val permissions = chat.optJSONObject("permissions")
+        val canSend = if (permissions?.opt("can_send_messages") is Boolean) permissions.getBoolean("can_send_messages") else null
+        return ChatPreview(chat.getLong("id"), title, chat.optString("type"), chat.optNullableString("username"), canSend)
+    }
+
+    suspend fun verifySendRights(chat: ChatPreview, botId: Long) {
+        if (chat.type == "private") return
+        val member = call("getChatMember", mapOf("chat_id" to chat.id.toString(), "user_id" to botId.toString())).optJSONObject("result")
+            ?: throw TelegramNetworkException(IOException("Invalid member response"))
+        if (member.optJSONObject("user")?.optLong("id") != botId || member.opt("status") !is String) {
+            throw TelegramNetworkException(IOException("Invalid bot membership"))
+        }
+        val allowed = canSendToChat(chat, member)
+        if (!allowed) throw TelegramApiException(403, "Bot publication rights could not be confirmed")
     }
 
     suspend fun sendMessage(chatId: Long, text: String): Long {
@@ -212,5 +228,17 @@ class TelegramApiClient private constructor(
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(70, TimeUnit.SECONDS)
             .build()
+    }
+}
+
+internal fun canSendToChat(chat: ChatPreview, member: JSONObject): Boolean {
+    val status = member.optString("status")
+    return when (chat.type) {
+        "channel" -> status == "creator" || (status == "administrator" && member.opt("can_post_messages") == true)
+        "group", "supergroup" -> status == "creator" || status == "administrator" ||
+            (chat.defaultCanSendMessages == true && (status == "member" ||
+                (status == "restricted" && member.opt("is_member") == true && member.opt("can_send_messages") == true)))
+        "private" -> true
+        else -> false
     }
 }

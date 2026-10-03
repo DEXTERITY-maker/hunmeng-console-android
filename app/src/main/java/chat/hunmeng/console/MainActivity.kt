@@ -13,6 +13,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -41,6 +44,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -61,6 +66,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -82,7 +90,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun HunmengConsole(viewModel: ConsoleViewModel) {
     val state by viewModel.console.state.collectAsStateWithLifecycle()
-    MaterialTheme(colorScheme = androidx.compose.material3.lightColorScheme(primary = Color(0xFF1769AA), background = Color(0xFFF5F7FB))) {
+    ConsoleTheme(state.themeMode) {
         ConsoleScreen(state, viewModel.console)
     }
 }
@@ -96,6 +104,10 @@ private fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController) {
     val connectionBusy = state.isConnecting || state.isDisconnecting || state.isChecking
     val sendBusy = state.isPreviewing || state.isSending || state.isChecking || state.isWebhookRemoving || state.isDisconnecting
     var reportFallback by remember { mutableStateOf<String?>(null) }
+    var settingsVisible by remember { mutableStateOf(false) }
+    var templateDialog by remember { mutableStateOf(false) }
+    var templateName by remember { mutableStateOf("") }
+    var editingTemplateId by remember { mutableStateOf<String?>(null) }
     val botScroll = rememberScrollState()
     val messageScroll = rememberScrollState()
     val eventsScroll = rememberScrollState()
@@ -103,12 +115,18 @@ private fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController) {
         topBar = {
             TopAppBar(
                 title = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Image(painterResource(R.drawable.brand_icon), contentDescription = null, modifier = Modifier.size(38.dp))
                     Column {
                         Text("Hunmeng Console", style = MaterialTheme.typography.titleMedium)
                         Text(DISPLAY_VERSION, style = MaterialTheme.typography.labelSmall)
                     }
+                    }
                 },
                 actions = {
+                    IconButton(onClick = { settingsVisible = true }) {
+                        Icon(painterResource(R.drawable.ic_theme), contentDescription = t("Настройки темы", "Theme settings"))
+                    }
                     FilterChip(selected = ru, onClick = { vm.setLanguage(UiLanguage.RU) }, label = { Text("RU") })
                     Spacer(Modifier.padding(3.dp))
                     FilterChip(selected = !ru, onClick = { vm.setLanguage(UiLanguage.EN) }, label = { Text("EN") })
@@ -132,7 +150,7 @@ private fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController) {
                 }
             }
         },
-        containerColor = Color(0xFFF5F7FB),
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets.safeDrawing,
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
@@ -147,8 +165,19 @@ private fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (state.selectedTab == ConsoleTab.BOT) {
-            Text(t("Управление Telegram-ботом", "Telegram bot management"), style = MaterialTheme.typography.titleMedium)
-            Text(t("Подключи своего бота, настрой ответы и отправляй сообщения.", "Connect your bot, configure replies and send messages."), style = MaterialTheme.typography.bodySmall)
+            SectionCard(t("Обзор сессии", "Session overview")) {
+                Text(state.bot?.let { it.username?.let { username -> "@$username" } ?: it.firstName } ?: t("Бот не подключён", "No bot connected"), style = MaterialTheme.typography.titleLarge)
+                Text(statusText(state.status).text(state.language), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(t("Последний успешный запрос: ", "Last successful request: ") + (state.lastSuccessfulRequest ?: "—"), style = MaterialTheme.typography.bodySmall)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(t("Получено", "Received") to state.counters.received, t("Отвечено", "Replied") to state.counters.replied, t("Ошибки", "Errors") to state.counters.errors).forEach { (label, value) ->
+                        Surface(Modifier.weight(1f), shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+                            Column(Modifier.padding(10.dp)) { Text(value.toString(), style = MaterialTheme.typography.titleLarge); Text(label, style = MaterialTheme.typography.bodySmall) }
+                        }
+                    }
+                }
+                Text(t("Счётчики относятся к текущему подключению. Отправлено вручную: ", "Counters cover this connection. Manually sent: ") + state.counters.sent, style = MaterialTheme.typography.bodySmall)
+            }
             SectionCard(t("Подключение", "Connection")) {
                 OutlinedTextField(
                     value = state.tokenInput,
@@ -232,14 +261,39 @@ private fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController) {
                 }
             }
             if (state.selectedTab == ConsoleTab.MESSAGE) {
+            SectionCard(t("Избранные получатели", "Favorite recipients")) {
+                val favorites = state.favorites.filter { it.botId == state.bot?.id }
+                if (favorites.isEmpty()) Text(t("Сначала проверь получателя и сохрани чат.", "Preview a recipient, then save the chat."), style = MaterialTheme.typography.bodySmall)
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    favorites.forEach { favorite -> FilterChip(selected = state.chatInput == favorite.chat.id.toString(), enabled = !sendBusy, onClick = { vm.selectFavorite(favorite.chat.id) }, label = { Text(favorite.chat.title) }) }
+                }
+                state.verifiedRecipient?.let { recipient ->
+                    OutlinedButton(onClick = vm::saveFavorite, enabled = !sendBusy) { Text(t("Сохранить чат: ", "Save chat: ") + recipient.title) }
+                }
+                Text(t("Перед отправкой получатель и права проверяются заново.", "Recipient and permissions are checked again before sending."), style = MaterialTheme.typography.bodySmall)
+            }
+            SectionCard(t("Шаблоны сообщений", "Message templates")) {
+                if (state.templates.isEmpty()) Text(t("Сохрани текст из поля сообщения как шаблон.", "Save the message field as a template."), style = MaterialTheme.typography.bodySmall)
+                state.templates.forEach { template ->
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        TextButton(onClick = { vm.insertTemplate(template.id) }, enabled = !sendBusy, modifier = Modifier.weight(1f)) { Text(template.title) }
+                        TextButton(onClick = { vm.insertTemplate(template.id); templateName = template.title; editingTemplateId = template.id; templateDialog = true }, enabled = !sendBusy) { Text(t("Изменить", "Edit")) }
+                        IconButton(onClick = { vm.deleteTemplate(template.id) }, enabled = !sendBusy, modifier = Modifier.semantics { contentDescription = t("Удалить шаблон: ", "Delete template: ") + template.title }) { Text("×", style = MaterialTheme.typography.titleLarge) }
+                    }
+                }
+                OutlinedButton(onClick = { editingTemplateId = null; templateName = ""; templateDialog = true }, enabled = !sendBusy && state.messageInput.isNotBlank()) { Text(t("Сохранить шаблон", "Save template")) }
+                Text(t("Без входа в аккаунт шаблоны и избранное остаются в памяти до закрытия приложения.", "Without account sign-in, templates and favorites stay in memory until the app closes."), style = MaterialTheme.typography.bodySmall)
+                state.toolsError?.let { Text(it.text(state.language), color = MaterialTheme.colorScheme.error) }
+            }
             SectionCard(t("Ручная отправка", "Manual send")) {
                 OutlinedTextField(value = state.chatInput, onValueChange = vm::setChatInput, enabled = !sendBusy, modifier = Modifier.fillMaxWidth(), label = { Text(t("ID чата или @username", "Chat ID or @username")) }, singleLine = true, keyboardOptions = KeyboardOptions(autoCorrectEnabled = false))
                 OutlinedTextField(value = state.messageInput, onValueChange = vm::setMessageInput, enabled = !sendBusy, modifier = Modifier.fillMaxWidth(), label = { Text(t("Сообщение (1–4096 символов)", "Message (1–4096 characters)")) }, minLines = 3)
                 Text("${countTelegramCharacters(state.messageInput)}/4096", style = MaterialTheme.typography.labelSmall)
-                Button(onClick = vm::previewSend, enabled = state.isConnected && !sendBusy) { Text(if (state.isPreviewing) t("Проверяем…", "Checking…") else t("Проверить получателя", "Preview recipient")) }
+                Button(onClick = vm::previewSend, enabled = state.isConnected && !sendBusy, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(if (state.isPreviewing) t("Проверяем…", "Checking…") else t("Предпросмотр", "Preview")) }
+                Text(t("Отправка после подтверждения", "Send after confirmation"), style = MaterialTheme.typography.bodySmall)
                 state.sendError?.let { Text(it.text(state.language), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
                 state.draft?.let {
-                    Text(if (state.draftDelivery == "unknown") t("Доставка неизвестна. Черновик остался в памяти. Проверь чат перед повторной отправкой.", "Delivery is unknown. The draft remains in memory. Check the chat before sending again.") else t("Telegram отклонил отправку. Черновик остался в памяти.", "Telegram rejected the send. The draft remains in memory."), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    Text(when (state.draftDelivery) { "unknown" -> t("Доставка неизвестна. Черновик остался в памяти. Проверь чат перед повторной отправкой.", "Delivery is unknown. The draft remains in memory. Check the chat before sending again."); "not_sent" -> t("Сообщение не отправлено: права не подтверждены. Черновик в памяти.", "Message not sent: permissions not confirmed. Draft is in memory."); else -> t("Telegram отклонил отправку. Черновик остался в памяти.", "Telegram rejected the send. The draft remains in memory.") }, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                     OutlinedButton(onClick = vm::restoreDraft, enabled = !sendBusy) { Text(t("Вернуть черновик в поле", "Restore draft to field")) }
                     state.draftRecipient?.let { recipient ->
                         Text("${recipient.title} · ID ${recipient.id}", style = MaterialTheme.typography.bodySmall)
@@ -319,6 +373,24 @@ private fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController) {
         )
     }
 
+    if (settingsVisible) {
+        AlertDialog(onDismissRequest = { settingsVisible = false }, title = { Text(t("Оформление", "Appearance")) }, text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ThemeMode.entries.forEach { mode ->
+                    FilterChip(selected = state.themeMode == mode, onClick = { vm.setThemeMode(mode) }, label = { Text(when (mode) { ThemeMode.SYSTEM -> t("Системная тема", "System theme"); ThemeMode.LIGHT -> t("Светлая тема", "Light theme"); ThemeMode.DARK -> t("Тёмная тема", "Dark theme") }) })
+                }
+            }
+        }, confirmButton = { TextButton(onClick = { settingsVisible = false }) { Text(t("Готово", "Done")) } })
+    }
+    if (templateDialog) {
+        AlertDialog(onDismissRequest = { templateDialog = false }, title = { Text(t("Сохранить шаблон", "Save template")) }, text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(value = templateName, onValueChange = { templateName = it }, label = { Text(t("Название", "Title")) }, singleLine = true)
+                OutlinedTextField(value = state.messageInput, onValueChange = vm::setMessageInput, label = { Text(t("Текст шаблона", "Template text")) }, minLines = 3)
+                Text(t("После вставки текст можно изменить. Отправка потребует проверки и подтверждения.", "You can edit the inserted text. Sending requires a preview and confirmation."))
+            }
+        }, confirmButton = { TextButton(onClick = { vm.saveTemplate(templateName, editingTemplateId); if (validTemplate(templateName, state.messageInput)) templateDialog = false }) { Text(t("Сохранить", "Save")) } }, dismissButton = { TextButton(onClick = { templateDialog = false }) { Text(t("Отмена", "Cancel")) } })
+    }
     if (state.webhookDialogVisible) {
         AlertDialog(
             onDismissRequest = vm::cancelWebhookRemoval,
@@ -350,8 +422,8 @@ private fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController) {
 
 @Composable
 private fun SectionCard(title: String, content: @Composable () -> Unit) {
-    Card(colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
-        Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             HorizontalDivider()
             content()

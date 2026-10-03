@@ -54,6 +54,12 @@ data class ConsoleUiState(
     val repliesExpanded: Boolean = false,
     val eventQuery: String = "",
     val eventFilter: EventFilter = EventFilter.ALL,
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val counters: SessionCounters = SessionCounters(),
+    val templates: List<MessageTemplate> = emptyList(),
+    val favorites: List<FavoriteRecipient> = emptyList(),
+    val verifiedRecipient: ChatPreview? = null,
+    val toolsError: ConsoleText? = null,
 )
 
 interface ConsolePreferences {
@@ -98,6 +104,7 @@ class ConsoleController(
             welcome = if (custom) prefs.getString("welcome", "") ?: "" else defaultWelcome(language),
             welcomeCustom = custom,
             echoEnabled = prefs.getBoolean("echo", false),
+            themeMode = ThemeMode.entries.firstOrNull { it.name == prefs.getString("theme", "SYSTEM") } ?: ThemeMode.SYSTEM,
         )
     }
 
@@ -149,6 +156,7 @@ class ConsoleController(
                         polling = PollingController(scope)
                         nextOffset = null
                         handledUpdates.clear()
+                        update { it.copy(counters = SessionCounters(), verifiedRecipient = null) }
                     }
                 } else if (!isNew && result.checks.errorCode == 401) {
                     client.close()
@@ -342,7 +350,7 @@ class ConsoleController(
     }
 
     fun setChatInput(value: String) {
-        if (!state.value.isSending && !state.value.isPreviewing) update { it.copy(chatInput = value, sendPreview = null, sendError = null) }
+        if (!state.value.isSending && !state.value.isPreviewing) update { it.copy(chatInput = value, sendPreview = null, sendError = null, verifiedRecipient = null) }
     }
 
     fun setMessageInput(value: String) {
@@ -361,7 +369,8 @@ class ConsoleController(
         previewJob = scope.launch {
             try {
                 val chat = client.getChat(destination)
-                if (generation == session) update { it.copy(sendPreview = SendPreview(chat, text), isPreviewing = false, lastSuccessfulRequest = now(), lastSuccessAt = clock(), sendError = null) }
+                client.verifySendRights(chat, state.value.bot?.id ?: return@launch)
+                if (generation == session) update { it.copy(sendPreview = SendPreview(chat, text), verifiedRecipient = chat, isPreviewing = false, lastSuccessfulRequest = now(), lastSuccessAt = clock(), sendError = null) }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
@@ -384,9 +393,24 @@ class ConsoleController(
         val generation = session
         update { it.copy(isSending = true, sendError = null) }
         sendJob = scope.launch {
+            // A preview can remain open while Telegram permissions change.
+            // Failure before sendMessage is a known non-delivery, not an uncertain send.
+            try {
+                if (snapshot.chat.type != "private") {
+                    val fresh = client.getChat(snapshot.chat.id.toString())
+                    if (fresh.id != snapshot.chat.id) throw IllegalStateException("Recipient changed")
+                    client.verifySendRights(fresh, state.value.bot?.id ?: return@launch)
+                }
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) {
+                if (generation == session) retainFailedSend(snapshot, "not_sent", ConsoleText("Не удалось подтвердить права. Сообщение не отправлено; черновик сохранён.", "Could not confirm permissions. Message was not sent; draft saved."))
+                return@launch
+            }
+            if (generation != session) return@launch
             try {
                 val id = client.sendMessage(snapshot.chat.id, snapshot.text)
                 if (generation == session) {
+                    update { it.copy(counters = it.counters.copy(sent = it.counters.sent + 1)) }
                     update { it.copy(sendPreview = null, isSending = false, draft = null, draftRecipient = null, draftDelivery = null, lastSuccessfulRequest = now(), lastSuccessAt = clock(), sendError = null) }
                     addEvent(ConsoleEventType.SEND, ConsoleText("Сообщение отправлено, ID $id", "Message sent, ID $id"))
                 }
@@ -439,6 +463,7 @@ class ConsoleController(
             return
         }
         val message = update.message ?: update.editedMessage ?: update.channelPost ?: update.editedChannelPost ?: return
+        update { it.copy(counters = it.counters.copy(received = it.counters.received + 1)) }
         val acceptedCommand = receivedCommand(update, state.value.bot?.username)
         val summary = acceptedCommand?.let { "/${it.name}" } ?: redactEventText(message.text.orEmpty()).take(80)
         val detail = if (summary.isNotBlank()) ConsoleText("${chatTypeText(message.chatType).ru}: $summary", "${chatTypeText(message.chatType).en}: $summary") else ConsoleText("${chatTypeText(message.chatType).ru}: медиа или служебное сообщение", "${chatTypeText(message.chatType).en}: media or service message")
@@ -467,6 +492,7 @@ class ConsoleController(
         try {
             client.sendMessage(message.chatId, answer)
             if (generation == session) {
+                update { it.copy(counters = it.counters.copy(replied = it.counters.replied + 1)) }
                 update { it.copy(lastSuccessfulRequest = now(), lastSuccessAt = clock()) }
                 if (command != null) addEvent(ConsoleEventType.REPLY, ConsoleText("Ответ на /${command.name} отправлен", "Reply to /${command.name} sent"))
                 else addEvent(ConsoleEventType.ECHO, ConsoleText("Эхо отправлено", "Echo sent"))
@@ -480,7 +506,7 @@ class ConsoleController(
 
     private fun addEvent(type: ConsoleEventType, detail: ConsoleText, isError: Boolean = type == ConsoleEventType.ERROR) {
         val safeDetail = ConsoleText(redactEventText(detail.ru), redactEventText(detail.en))
-        update { it.copy(events = (listOf(ConsoleEventRecord(now(), type, safeDetail, isError)) + it.events).take(150)) }
+        update { it.copy(events = (listOf(ConsoleEventRecord(now(), type, safeDetail, isError)) + it.events).take(150), counters = if (isError) it.counters.copy(errors = it.counters.errors + 1) else it.counters) }
     }
 
     private fun setSendError(error: ConsoleText) = update { it.copy(sendError = error) }
@@ -492,17 +518,61 @@ class ConsoleController(
     fun toggleReplies() = update { it.copy(repliesExpanded = !it.repliesExpanded) }
     fun setEventQuery(query: String) = update { it.copy(eventQuery = query) }
     fun setEventFilter(filter: EventFilter) = update { it.copy(eventFilter = filter) }
+    fun setThemeMode(mode: ThemeMode) {
+        prefs.putString("theme", mode.name)
+        update { it.copy(themeMode = mode) }
+    }
+
+    // Until a server-verified account is bound, explicitly saved tools remain in memory.
+    // Persisting account-scoped tools is handled by the authenticated account repository.
+    fun saveTemplate(title: String, replaceId: String? = null) {
+        if (!validTemplate(title, state.value.messageInput)) {
+            update { it.copy(toolsError = ConsoleText("Введите название и текст без секретов", "Enter a title and text without secrets")) }
+            return
+        }
+        val existing = state.value.templates
+        if (replaceId != null && existing.none { it.id == replaceId }) return
+        if (replaceId == null && existing.size >= 20) {
+            update { it.copy(toolsError = ConsoleText("Можно сохранить до 20 шаблонов", "You can save up to 20 templates")) }; return
+        }
+        val template = MessageTemplate(replaceId ?: java.util.UUID.randomUUID().toString(), title.trim(), state.value.messageInput)
+        update { it.copy(templates = if (replaceId == null) it.templates + template else it.templates.map { saved -> if (saved.id == replaceId) template else saved }, toolsError = null) }
+    }
+    fun insertTemplate(id: String) { state.value.templates.firstOrNull { it.id == id }?.let { setMessageInput(it.text) } }
+    fun deleteTemplate(id: String) = update { it.copy(templates = it.templates.filterNot { saved -> saved.id == id }) }
+    fun saveFavorite() {
+        val bot = state.value.bot ?: return
+        val chat = state.value.verifiedRecipient ?: return
+        if (containsCredential(chat.title)) return
+        val favorites = state.value.favorites.filterNot { it.botId == bot.id && it.chat.id == chat.id }
+        if (favorites.size >= 20) return update { it.copy(toolsError = ConsoleText("Можно сохранить до 20 чатов", "You can save up to 20 chats")) }
+        update { it.copy(favorites = favorites + FavoriteRecipient(bot.id, chat), toolsError = null) }
+    }
+    fun selectFavorite(chatId: Long) {
+        val favorite = state.value.favorites.firstOrNull { it.botId == state.value.bot?.id && it.chat.id == chatId } ?: return
+        setChatInput(favorite.chat.id.toString())
+    }
+    fun deleteFavorite(chatId: Long) = update { it.copy(favorites = it.favorites.filterNot { saved -> saved.botId == it.bot?.id && saved.chat.id == chatId }) }
     private fun markSuccess(instant: Instant) = update { it.copy(lastSuccessAt = instant, lastSuccessfulRequest = now()) }
 
     fun close() {
-        listOfNotNull(connectJob, commandJob, pollingActionJob, webhookJob, previewJob, sendJob).forEach { it.cancel() }
-        scope.launch { polling?.stop() }
+        val oldPolling = polling
         session++
+        listOfNotNull(connectJob, commandJob, pollingActionJob, webhookJob, previewJob, sendJob).forEach { it.cancel() }
+        scope.launch { oldPolling?.stop() }
         api?.close()
         connectingApi?.close()
         api = null
         connectingApi = null
-        _state.value = ConsoleUiState(language = state.value.language)
+        polling = null
+        nextOffset = null
+        handledUpdates.clear()
+        _state.value = ConsoleUiState(language = state.value.language, themeMode = state.value.themeMode, welcome = defaultWelcome(state.value.language))
+    }
+
+    fun clearAccountData() {
+        listOf("welcome", "welcome_custom", "echo").forEach(prefs::remove)
+        close()
     }
 
     companion object {

@@ -7,7 +7,7 @@ enum class UiLanguage { RU, EN }
 
 data class BotUser(val id: Long, val firstName: String, val username: String?)
 
-data class ChatPreview(val id: Long, val title: String, val type: String, val username: String?)
+data class ChatPreview(val id: Long, val title: String, val type: String, val username: String?, val defaultCanSendMessages: Boolean? = null)
 
 data class EventRecord(val time: String, val type: String, val detail: String)
 
