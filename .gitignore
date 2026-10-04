@@ -17,3 +17,4 @@ captures/
 *.pem
 *.key
 app/src/main/jniLibs/
+ui-test-images/
