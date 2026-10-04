@@ -67,6 +67,7 @@ internal class TdLibInventorySource(private val client: TdLibClient, private val
             if (status == null) { noAccess++; continue }
             val role = status.optString("@type")
             if (role in setOf("chatMemberStatusLeft", "chatMemberStatusBanned")) continue
+            if (role == "chatMemberStatusRestricted" && status.opt("is_member") == false) continue
             if (role !in setOf("chatMemberStatusCreator", "chatMemberStatusAdministrator", "chatMemberStatusMember", "chatMemberStatusRestricted")) { noAccess++; continue }
             val rights = status.optJSONObject("rights")
             fun flag(name: String): Boolean? = if (role == "chatMemberStatusCreator") true else rights?.opt(name) as? Boolean

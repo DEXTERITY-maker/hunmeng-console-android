@@ -179,6 +179,7 @@ private fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController) {
                 Text(t("Счётчики относятся к текущему подключению. Отправлено вручную: ", "Counters cover this connection. Manually sent: ") + state.counters.sent, style = MaterialTheme.typography.bodySmall)
             }
             SectionCard(t("Подключение", "Connection")) {
+                state.selectedOwnedBot?.let { owned -> Text(t("Выбран бот: ", "Selected bot: ") + (owned.bot.username?.let { "@$it" } ?: owned.bot.firstName)) }
                 OutlinedTextField(
                     value = state.tokenInput,
                     onValueChange = vm::setTokenInput,

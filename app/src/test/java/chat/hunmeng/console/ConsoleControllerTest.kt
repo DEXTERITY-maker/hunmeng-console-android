@@ -66,6 +66,20 @@ class ConsoleControllerTest {
         }
     }
 
+    @Test fun selectedOwnedBotRejectsAnotherBotsTokenWithoutSyncOrPolling() = runBlocking {
+        withConsole { console, server, _ ->
+            console.selectOwnedBot(OwnedBot(BotUser(42L, "Selected fixture", null), 7L, java.time.Instant.now()))
+            server.enqueue(me()); server.enqueue(webhook())
+            console.setTokenInput("TEST_WRONG_BOT_TOKEN"); console.connect()
+            console.await { !it.isConnecting && it.connectionError != null }
+            assertFalse(console.state.value.isConnected)
+            assertEquals("", console.state.value.tokenInput)
+            assertEquals(CheckStatus.ERROR, console.state.value.checks.authorization)
+            console.startPolling()
+            assertEquals(2, server.requestCount)
+        }
+    }
+
     @Test fun disconnectAndNewTokenCannotAcceptTheOldResponse() = runBlocking {
         withConsole { console, server, _ ->
             server.enqueue(me().setBodyDelay(500, TimeUnit.MILLISECONDS))

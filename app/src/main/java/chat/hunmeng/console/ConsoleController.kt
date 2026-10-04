@@ -60,6 +60,7 @@ data class ConsoleUiState(
     val favorites: List<FavoriteRecipient> = emptyList(),
     val verifiedRecipient: ChatPreview? = null,
     val toolsError: ConsoleText? = null,
+    val selectedOwnedBot: OwnedBot? = null,
 )
 
 interface ConsolePreferences {
@@ -148,6 +149,12 @@ class ConsoleController(
                     onSuccess = { instant -> if (generation == session) markSuccess(instant) },
                 )
                 if (generation != session) return@launch
+                val expected = state.value.selectedOwnedBot?.bot?.id
+                if (result.bot != null && expected != null && result.bot.id != expected) {
+                    update { it.copy(isConnecting = false, isChecking = false, isConnected = false, tokenInput = "", tokenVisible = false, status = "error", bot = null, checks = result.checks.copy(authorization = CheckStatus.ERROR, webhook = CheckStatus.IDLE, checkedAt = clock()), connectionError = ConsoleText("Токен принадлежит другому боту. Используйте токен выбранного бота.", "This token belongs to another bot. Use the selected bot's token.")) }
+                    addEvent(ConsoleEventType.CONNECTION, ConsoleText("Токен не соответствует выбранному боту", "Token does not match the selected bot"), isError = true)
+                    return@launch
+                }
                 if (result.bot != null) {
                     api = client
                     connectingApi = null
@@ -573,6 +580,14 @@ class ConsoleController(
     fun clearAccountData() {
         listOf("welcome", "welcome_custom", "echo").forEach(prefs::remove)
         close()
+    }
+
+    /** The account controller passes a card from its verified inventory, never an external ID. */
+    fun selectOwnedBot(bot: OwnedBot) {
+        val templates = state.value.templates
+        val favorites = state.value.favorites
+        close()
+        update { it.copy(selectedOwnedBot = bot, templates = templates, favorites = favorites, welcome = if (prefs.getBoolean("welcome_custom", false)) prefs.getString("welcome", "") ?: "" else defaultWelcome(it.language), welcomeCustom = prefs.getBoolean("welcome_custom", false), echoEnabled = prefs.getBoolean("echo", false)) }
     }
 
     companion object {
