@@ -18,3 +18,5 @@ captures/
 *.key
 app/src/main/jniLibs/
 ui-test-images/
+__pycache__/
+*.pyc
