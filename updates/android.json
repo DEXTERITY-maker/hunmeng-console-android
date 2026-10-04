@@ -1,0 +1,15 @@
+{
+  "platform": "android",
+  "package": "chat.hunmeng.console",
+  "release_id": "v0.0.4-beta-sync",
+  "version_code": 2,
+  "version_name": "0.0.4-beta",
+  "apk_url": "https://github.com/DEXTERITY-maker/hunmeng-console-android/releases/download/v0.0.4-beta-sync/Hunmeng-Console-0.0.4-beta-sync.apk",
+  "apk_sha256": "85df3e542259b20b9ae5c799f2761f446e942853d67bcb9c26bb88af1d535786",
+  "certificate_sha256": "d302a625f8daecda20251b4ea6f152c6f2a68fcf2bdfcd2236b13270dd0cf3c1",
+  "size_bytes": 12352098,
+  "changes": {
+    "ru": "Проверка подключения и безопасный отчёт. Поиск, фильтры и копирование событий. Вкладки и настройки ответов. Ссылка на BotFather.",
+    "en": "Connection checks and a safe report. Event search, filters and copying. Tabs and reply settings. BotFather link."
+  }
+}
