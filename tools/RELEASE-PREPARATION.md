@@ -6,7 +6,7 @@
 
 Workflow `android.yml` проверяет сервер на Node.js 26, нативные библиотеки, unit-тесты, debug/release lint, debug APK и unsigned release APK. Artifact `hunmeng-console-unsigned-release` содержит исходный неподписанный APK, AAPT-метаданные и SHA-256. Ключ подписи в GitHub не передаётся.
 
-Ручной запуск принимает `telegram_login_client_id`: только публичный Client ID из BotFather. Значение `0` оставляет вход ненастроенным и используется для подготовки инфраструктуры. Client Secret находится в защищённых настройках backend; API hash вводится отдельно в приложении для TDLib.
+Ручной запуск принимает `telegram_login_client_id`: только публичный OIDC Client ID из BotFather. Значение `0` оставляет вход ненастроенным. Native App URL имеет отдельный идентификатор: для выбранного бота публичные Client ID `8883240190` и App URL ID `1853479971` явно записаны в `gradle.properties`. Их нельзя вычислять друг из друга. Gradle принимает отдельный `telegramLoginAppId` для другой регистрации и проверяет согласованность конфигурации. Client Secret находится в защищённых настройках backend; API hash вводится отдельно в приложении для TDLib.
 
 ## Подпись на телефоне
 
@@ -15,16 +15,16 @@ Workflow `android.yml` проверяет сервер на Node.js 26, нати
 Пример для проверяемой сборки с сохранёнными текущими метаданными:
 
 ```sh
-gh run download 37174913542 --repo DEXTERITY-maker/hunmeng-console-android --name hunmeng-console-unsigned-release --dir .cache/unsigned-release-37174913542
-python tools/prepare_android_release.py .cache/unsigned-release-37174913542/app/build/outputs/apk/release/app-release-unsigned.apk --output-dir .cache/signed-candidate-37174913542 --source-commit bd8719f3d5e362130ff271c72ed09caa5b4adbba --ci-run-id 37174913542 --version-name 0.0.4-beta --version-code 2 --client-id 8883240190
+gh run download 37176423096 --repo DEXTERITY-maker/hunmeng-console-android --name hunmeng-console-unsigned-release --dir .cache/unsigned-release-37176423096
+python tools/prepare_android_release.py .cache/unsigned-release-37176423096/app/build/outputs/apk/release/app-release-unsigned.apk --output-dir .cache/signed-candidate-37176423096 --source-commit 6ae18a5ebf8ae018db02fa75f121a46bff6ea555 --ci-run-id 37176423096 --version-name 0.0.4-beta --version-code 2 --client-id 8883240190 --app-id 1853479971
 ```
 
-Для следующей сборки брать run ID и полный commit SHA из её GitHub Actions, ожидаемую версию — из согласованных метаданных, Client ID — из публичной конфигурации. Номер версии этот инструмент не меняет. Существующий output-каталог не перезаписывает.
+Для следующей сборки брать run ID и полный commit SHA из её GitHub Actions, ожидаемую версию — из согласованных метаданных, Client ID и отдельный native App URL ID — из публичной конфигурации BotFather. Номер версии этот инструмент не меняет. Существующий output-каталог не перезаписывает.
 
 ## Проверки кандидата
 
 - Правильные package/versionCode/versionName/minSdk/targetSdk; debug APK отклоняется.
-- Точный Login host в manifest соответствует публичному Client ID.
+- Точный Login host в manifest соответствует зарегистрированному native App URL; OIDC Client ID фиксируется отдельно.
 - ZIP/CRC; обе TDLib arm64-v8a/x86_64 и лицензии; ELF архитектура и 16 KB LOAD alignment.
 - Выравнивание `zipalign -P 16` до подписи, затем `apksigner` v2/v3.
 - После подписи: один постоянный сертификат, ZIP/CRC, повторная проверка выравнивания, неизменные manifest-метаданные и native SHA-256.

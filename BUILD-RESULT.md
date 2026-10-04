@@ -18,6 +18,16 @@ APK из финального CI: 64 262 261 байт; SHA-256 `f043f69b39f06cf7
 
 Сервер применил runtime revision 3: config HTTP 200 / true, begin HTTP 200 с PKCE S256 и только openid/profile, cancel HTTP 200 / true. Telegram Android assetlinks HTTP 404; регистрация приложения и реальный callback не подтверждены. Правильность Client Secret ещё не проверена настоящим обменом кода. Авторизованных ADB-устройств нет.
 
+### Исправленный App URL — актуальный кандидат
+
+Native App URL ID `1853479971` отличается от OIDC Client ID `8883240190`. Actual assetlinks HTTP 200 подтверждает package/постоянный сертификат/relation. Прежний 404 относился к неверно вычисленному домену; кандидат 37174913542 использовать для Login нельзя.
+
+[CI 37176423096](https://github.com/DEXTERITY-maker/hunmeng-console-android/actions/runs/37176423096), source `6ae18a5ebf8ae018db02fa75f121a46bff6ea555`: все пять jobs успешны; 94 Android / 22 server / 10 packaging tests, debug/release lint каждый 0 ошибок / 33 предупреждения. UI job: три теста дважды, Client ID `0`.
+
+Новый подписанный APK: 60 189 736 байт; SHA-256 `f1adfa260fcd1a5f3787c5bb4d4c724c1c959a3b2ac87d7914c045f2ec59bb71`. Проверены native host, постоянная v2/v3 подпись, целостность/16 KB alignment. Копия: `/storage/emulated/0/Download/Hunmeng-Console-Login-candidate-37176423096.apk`; системному установщику передана успешно, установка не подтверждена.
+
+Backend version 10 / runtime revision 4 опубликован, source `b3a67da2306ac2b3f200c9b69aaa07a1e58776e5`, deployment succeeded. Config/begin/cancel HTTP 200 с правильным redirect, PKCE S256 и openid/profile; actual App Links HTTP 200. Полный Login/TDLib не проверен. [Детали кандидата](reports/v0.0.5-release-candidate.md).
+
 ## APK для скачивания
 
 - [Скачать APK с пятью перенесёнными функциями](https://github.com/DEXTERITY-maker/hunmeng-console-android/releases/download/v0.0.4-beta-sync/Hunmeng-Console-0.0.4-beta-sync.apk).

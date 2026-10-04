@@ -1,6 +1,8 @@
 # Серверная проверка Telegram Login
 
-Модуль развёрнут на существующем публичном Sites backend (версия 9, source `e1db6a5a7e468bcdcfda89b1a130b501b26a0f87`). Ранее опубликованная версия 8 уже имела собственные browser sessions/D1: они сохранены. Android-маршруты и таблицы добавлены отдельно. 4 октября 2026 года применён runtime revision 3: публичный `/api/account/login/config` возвращает HTTP 200 и `configured: true`. Наличие конфигурации ещё не подтверждает реальный вход.
+Модуль развёрнут на существующем публичном Sites backend: версия 10, source `b3a67da2306ac2b3f200c9b69aaa07a1e58776e5`, runtime revision 4, deployment `appgdep_6ac25545b00081919e530a5ac8902173` — succeeded. Browser sessions/D1 и Android-таблицы сохранены; новая миграция не нужна.
+
+Config HTTP 200 / true возвращает OIDC Client ID `8883240190` и независимый redirect `https://app1853479971-login.tg.dev/tglogin`. Begin/cancel прошли с этим redirect, PKCE S256 и только openid/profile. Реальный вход и обмен кода ещё не проверены.
 
 ## Развёрнутая архитектура
 
@@ -13,20 +15,20 @@
 
 ## Конфигурация владельца
 
-Владелец выбрал **@hunmeng_official_bot**, предоставил публичный Client ID `8883240190` и Client Secret. ID сохранён как публичная runtime-переменная; секрет передан только в защищённый runtime, в код/APK/файлы не записывался. [Точные данные для BotFather и следующий шаг](OWNER-SETUP.md).
+Для **@hunmeng_official_bot** OIDC Client ID `8883240190` и native App URL ID `1853479971` различаются. Фактический App URL установлен по скриншоту BotFather; assetlinks HTTP 200 подтвердил package `chat.hunmeng.console`, полный постоянный SHA-256 сертификата и право открывать ссылки. [Данные BotFather](OWNER-SETUP.md).
 
-Login Widget должен использовать RS256 и redirect `https://app8883240190-login.tg.dev/tglogin`. В Android-настройках регистрируются package `chat.hunmeng.console` и постоянный SHA-256 сертификата из `reports/v0.0.5-signing.md`. Базовый домен Android App Link генерируется Telegram автоматически. Проверка `https://app8883240190-login.tg.dev/.well-known/assetlinks.json` вернула HTTP 404: привязка package/сертификата пока не подтверждена.
+Login Widget использует RS256 и точный redirect `https://app1853479971-login.tg.dev/tglogin`. Native App URL читается из регистрации Telegram, а не вычисляется из Client ID. Сервер разрешает точный HTTPS host `app<числовой native ID>-login.tg.dev` / path `/tglogin`, без userinfo/port/query/fragment.
 
-Runtime values задаются как секреты в Sites: `TELEGRAM_LOGIN_CLIENT_SECRET`, `TELEGRAM_LOGIN_DATA_KEY` (32 случайных байта base64url). `TELEGRAM_LOGIN_CLIENT_ID` — публичный идентификатор. Секреты не включаются в исходники, APK, команды shell или ответы пользователю. До заполнения `/config` отвечает `configured: false`, остальные операции — `login_not_configured`, без выдуманного профиля.
+Runtime: `TELEGRAM_LOGIN_CLIENT_ID` и `TELEGRAM_LOGIN_REDIRECT_URI` публичны; `TELEGRAM_LOGIN_CLIENT_SECRET` и `TELEGRAM_LOGIN_DATA_KEY` — защищённые секреты. При отсутствии отдельного redirect config возвращает false; fallback из Client ID удалён. Секреты в исходники, APK, shell или отчёты не включаются.
 
-Для отдельного TDLib-доступа нужно API-приложение владельца на my.telegram.org. API ID/hash вводятся в приложении и находятся в выбранном зашифрованном аккаунтном хранилище; Bot API-токены туда не попадают. Учётные данные и коды входа не следует передавать в переписке.
+TDLib подключается отдельно по согласию; API ID/hash вводятся в приложении, сохраняются в выбранном зашифрованном хранилище. Токены Bot API остаются только в памяти.
 
 ## Проверки
 
-`node --test server/telegram-login/*.test.mjs` — 20 тестов пройдены, повторены в CI 37174913542 на Node.js 26. Они используют собственную RSA-пару, SQLite в памяти, синтетические данные и mock fetch; реальной авторизации и Telegram-запросов в тестах нет. Native source/JNI, Android Keystore и UI проверяются отдельно. Добавлены атомарные D1 лимиты запросов; миграция применена, таблицы подтверждены.
+`node --test server/telegram-login/*.test.mjs` — 22 теста пройдены на Node.js 26, локально и в CI 37176423096. Добавлены различные client/native IDs, отсутствие redirect и точные границы разрешённого URI. SQLite/RSA/mock fetch используют синтетические данные; настоящий обмен токенов не выполняется. TypeScript и portable Linux ARM64 build повторены перед публикацией версии 10.
 
-На действующем backend отдельно проверены config (HTTP 200 / true), begin (HTTP 200, ожидаемый Client ID/redirect, PKCE S256, только openid/profile) и cancel (HTTP 200 / true). Свежая проверочная попытка удалена, URL/state/binding/nonce не выводились. Реальный обмен кода, корректность секрета и авторизация аккаунта ещё не проверялись. Deployment `appgdep_6ac1cb8026a88191be1be33e5391ad29` — succeeded.
+На действующем backend config/begin/cancel каждый HTTP 200: оба публичных идентификатора/redirect совпали с APK, PKCE S256 и openid/profile подтверждены. Свежая проверочная попытка удалена; URL/state/nonce/binding не выводились. Actual assetlinks HTTP 200, package/сертификат/relation совпадают. Полный Login, корректность Client Secret при обмене и данные TDLib остаются проверкой на устройстве.
 
-После сообщения владельца о добавлении package/сертификата повторные запросы assetlinks всё ещё вернули 404; причина не установлена. Страница начала авторизации Telegram вернула HTTP 200, известного сообщения об ошибке настройки не обнаружено; форму входа эта проверка не подтвердила. Ещё одна отдельная попытка отменена. Для уточнения регистрации запрошен скриншот только Android-раздела без секретов.
+Прежний 404 относился к ошибочно вычисленному из Client ID домену; регистрация владельца была правильной. Кандидат 37174913542 устарел, использовать исправленный 37176423096.
 
 Официальная документация: [Telegram Login](https://core.telegram.org/bots/telegram-login), [Android SDK](https://github.com/TelegramMessenger/telegram-login-android).

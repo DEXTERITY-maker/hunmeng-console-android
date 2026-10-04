@@ -4,11 +4,11 @@
 
 ## Разработка v0.0.5beta
 
-Ветка `codex/v005-account-session`, [draft PR #1](https://github.com/DEXTERITY-maker/hunmeng-console-android/pull/1). Добавлены аккаунтная навигация, серверная проверка входа, отдельное подключение TDLib, зашифрованная сессия/инструменты, темы и Android-обновления. Финальный CI: 93 теста, 0 failures; lint 0 ошибок; native runtime и эмуляторные проверки успешны.
+Ветка `codex/v005-account-session`, [draft PR #1](https://github.com/DEXTERITY-maker/hunmeng-console-android/pull/1). Добавлены аккаунтная навигация, серверная проверка входа, отдельное подключение TDLib, зашифрованная сессия/инструменты, темы и Android-обновления. Последний CI: 94 теста, 0 failures; lint 0 ошибок; native runtime и эмуляторные проверки успешны.
 
-**Это ещё не новый публичный APK.** Для @hunmeng_official_bot настроен публичный Client ID `8883240190`; Client Secret хранится в защищённом runtime сервера. `/config` возвращает `configured: true`, начало и отмена отдельной проверочной попытки прошли. Telegram Android App Links пока возвращает HTTP 404: регистрация package/сертификата и полный вход на телефоне не подтверждены. [Подробный статус](reports/v0.0.5-implementation.md) и [настройка сервера](server/telegram-login/OWNER-SETUP.md).
+**Это ещё не новый публичный APK.** Для @hunmeng_official_bot настроены публичный OIDC Client ID `8883240190` и отдельный native App URL ID `1853479971`. Client Secret хранится только в защищённом runtime сервера. Telegram assetlinks HTTP 200 подтвердил package и постоянный сертификат. Реальный вход и установка на телефоне ещё не проверены. [Подробный статус](reports/v0.0.5-implementation.md) и [настройка сервера](server/telegram-login/OWNER-SETUP.md).
 
-Последний [CI 37174913542](https://github.com/DEXTERITY-maker/hunmeng-console-android/actions/runs/37174913542) успешен: 93 Android / 20 серверных / 10 packaging-тестов, debug/release lint без ошибок. [Локальный кандидат с постоянной подписью](reports/v0.0.5-release-candidate.md) собран с настоящим Client ID. Он сохраняет текущую версию, требует проверки живого входа и не заменяет публичный выпуск. Эмуляторная UI job использовала тестовую конфигурацию Client ID `0`. [Процесс подготовки](tools/RELEASE-PREPARATION.md).
+Последний [CI 37176423096](https://github.com/DEXTERITY-maker/hunmeng-console-android/actions/runs/37176423096) успешен: 94 Android / 22 серверных / 10 packaging-тестов, debug/release lint без ошибок. [Локальный кандидат с постоянной подписью](reports/v0.0.5-release-candidate.md) собран с правильным App URL и скопирован в Download. Версия сохранена; пакет требует проверки живого входа и не заменяет публичный выпуск. Эмуляторная UI job использовала Client ID `0`. [Процесс подготовки](tools/RELEASE-PREPARATION.md).
 
 ## Скачать APK
 

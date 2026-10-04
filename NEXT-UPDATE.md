@@ -153,6 +153,10 @@ Android проверяет реальные **Android-выпуски**, веб �
 
 Последний [CI 37174913542](https://github.com/DEXTERITY-maker/hunmeng-console-android/actions/runs/37174913542), source `bd8719f3d5e362130ff271c72ed09caa5b4adbba`, также успешен: 93 Android / 20 серверных / 10 packaging-тестов, debug/release lint каждый 0 ошибок / 33 предупреждения. Release APK собран с Client ID `8883240190`; постоянная подпись, точный host и native/ZIP alignment 16 KB проверены. UI job использовала Client ID `0`, три instrumentation-теста дважды и восемь снимков; настоящий Login это не подтверждает. Владелец сообщил о добавлении package и сертификата в BotFather; сразу после этого Telegram assetlinks всё ещё возвращал HTTP 404. Регистрация пока не подтверждена внешней проверкой. Авторизованных ADB-устройств нет.
 
+Актуальное исправление: native App URL `https://app1853479971-login.tg.dev` установлен по скриншоту BotFather и отличается от Client ID `8883240190`. Actual assetlinks HTTP 200 подтвердил правильные package/сертификат/relation; прежние 404 были проверкой неверного домена. Сервер и Android теперь принимают native App URL отдельно, fallback из Client ID удалён.
+
+Последний CI 37176423096 успешен: 94 Android / 22 серверных / 10 packaging-тестов, debug/release lint каждый 0 ошибок / 33 предупреждения. APK подписан, проверен и сохранён в Download; команда открытия установщика прошла. Backend version 10 / runtime revision 4 применён: config/begin/cancel HTTP 200 с верным redirect. Actual App Links повторно HTTP 200. Установка/Login/TDLib остаются непроверенными; candidate не опубликован как v0.0.5beta. UI job с Client ID `0` не подтверждает реальный вход.
+
 ---
 
 ## Сохранённый план и результаты v0.0.4beta
