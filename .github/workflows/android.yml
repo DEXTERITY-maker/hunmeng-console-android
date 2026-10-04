@@ -89,10 +89,22 @@ jobs:
           disable-animations: true
           script: |
             ./gradlew connectedDebugAndroidTest --no-daemon --console=plain
-            adb exec-out run-as chat.hunmeng.console tar -cf - -C files test-screenshots > ui-screenshots.tar
+            mkdir -p ui-test-images/normal
+            cp -R app/build/outputs/connected_android_test_additional_output/. ui-test-images/normal/
             adb shell settings put system font_scale 1.6
             ./gradlew connectedDebugAndroidTest --rerun-tasks --no-daemon --console=plain
-            adb exec-out run-as chat.hunmeng.console tar -cf - -C files test-screenshots > ui-screenshots-large-font.tar
+            mkdir -p ui-test-images/large-font
+            cp -R app/build/outputs/connected_android_test_additional_output/. ui-test-images/large-font/
+            rg --files ui-test-images | rg '\\.png
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: android-device-checks
+          path: |
+            app/build/reports/androidTests/
+            ui-test-images/
+          if-no-files-found: ignore
+
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
