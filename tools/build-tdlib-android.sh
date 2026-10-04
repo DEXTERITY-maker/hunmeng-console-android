@@ -44,4 +44,4 @@ cmake -S "$TD_WORK/td/example/android" -B "$TD_WORK/native" -G Ninja \
 cmake --build "$TD_WORK/native" --target tdjni -j2
 cp "$TD_WORK/native/libtdjsonjava.so" "$TD_OUTPUT/$TD_ABI/"
 "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -lW "$TD_OUTPUT/$TD_ABI/libtdjsonjava.so" | awk '/LOAD/ { if ($NF != "0x4000" && $NF != "0x10000") exit 1; found=1 } END { if (!found) exit 1 }'
-sha256sum "$TD_OUTPUT/$TD_ABI/libtdjsonjava.so" > "$TD_OUTPUT/$TD_ABI/SHA256SUMS"
+sha256sum "$TD_OUTPUT/$TD_ABI/libtdjsonjava.so" | awk '{print $1 "  libtdjsonjava.so"}' > "$TD_OUTPUT/$TD_ABI/SHA256SUMS"

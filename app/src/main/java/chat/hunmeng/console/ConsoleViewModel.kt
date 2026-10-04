@@ -36,6 +36,7 @@ class ConsoleViewModel(application: Application) : AndroidViewModel(application)
     })
     init {
         lifecycle.addObserver(this)
+        updates.check()
         viewModelScope.launch { accountSession.restore() }
         viewModelScope.launch { login.restore() }
         console.onSavedToolsChanged = { tools -> viewModelScope.launch {
