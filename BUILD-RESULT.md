@@ -10,6 +10,8 @@
 
 APK из финального CI: 64 262 261 байт; SHA-256 `f043f69b39f06cf79a6fdbe3d07110257c6e7d9d3efeaef25391236fe6bd7a61`. ZIP/CRC, подпись v2 и AAPT-метаданные проверены локально. Лицензии и обе библиотеки TDLib в пакете совпадают с проверенными исходными artifacts. Полные сведения — в текущем отчёте выше.
 
+Следующий CI 37172566676 также подтвердил 93 Android / 20 серверных тестов, debug/release lint без ошибок и unsigned release APK. Локально получен non-debug APK с постоянной подписью: 60 189 736 байт, SHA-256 `93e3ad023f55ddcf5fd7e3e07650069b64c20491b6e19639eff51fe8018c4fc1`. [Отчёт кандидата](reports/v0.0.5-release-candidate.md). Он не опубликован и не установлен; настоящий Login ещё требует конфигурации.
+
 ## APK для скачивания
 
 - [Скачать APK с пятью перенесёнными функциями](https://github.com/DEXTERITY-maker/hunmeng-console-android/releases/download/v0.0.4-beta-sync/Hunmeng-Console-0.0.4-beta-sync.apk).

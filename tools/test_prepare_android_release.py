@@ -68,10 +68,11 @@ class PreparationTests(unittest.TestCase):
     def test_tool_failure_does_not_expose_output(self):
         secret = "synthetic-sensitive-value"
         result = subprocess.CompletedProcess(["apksigner"], 1, secret, secret)
-        with patch.object(release.subprocess, "run", return_value=result):
+        with patch.object(release.subprocess, "run", return_value=result) as runner:
             with self.assertRaises(release.PreparationError) as caught:
                 release.run_tool(["apksigner", "sign"])
             self.assertNotIn(secret, str(caught.exception))
+            self.assertEqual(runner.call_args.kwargs["stdin"], subprocess.DEVNULL)
             self.assertEqual(release.run_tool(["apksigner", "verify"], allow_failure=True).returncode, 1)
 
     def test_public_or_wrong_signing_material_is_rejected(self):
@@ -106,6 +107,9 @@ class PreparationTests(unittest.TestCase):
                 if arguments[0] == "apksigner" and "--print-certs" in arguments:
                     text = f"Number of signers: 1\nSigner #1 certificate SHA-256 digest: {release.CERTIFICATE_SHA256}\n"
                 if arguments[0] == "apksigner" and "--out" in arguments:
+                    self.assertEqual(arguments.count("--ks-pass"), 1)
+                    self.assertNotIn("--key-pass", arguments)
+                    self.assertTrue(arguments[arguments.index("--ks-pass") + 1].startswith("file:"))
                     Path(arguments[arguments.index("--out") + 1]).write_bytes(b"synthetic signed APK")
                 return subprocess.CompletedProcess(arguments, 1 if options.get("allow_failure") else 0, text, "")
 

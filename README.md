@@ -8,6 +8,8 @@
 
 **Это ещё не новый публичный APK.** Telegram Login требует Client ID/Secret и регистрации приложения в BotFather; сервер опубликован, но `/config` возвращает `configured: false`. Настоящий вход, данные аккаунта и установка на телефоне не проверены. [Подробный статус](reports/v0.0.5-implementation.md) и [настройка сервера](server/telegram-login/README.md).
 
+CI также собирает unsigned release APK; [локальный кандидат с постоянной подписью](reports/v0.0.5-release-candidate.md) проверен. Он сохраняет текущую версию, содержит ненастроенный Login и не заменяет публичный выпуск. [Процесс подготовки](tools/RELEASE-PREPARATION.md).
+
 ## Скачать APK
 
 **[Скачать Hunmeng Console v0.0.4beta для Android 8.0+](https://github.com/DEXTERITY-maker/hunmeng-console-android/releases/download/v0.0.4-beta-sync/Hunmeng-Console-0.0.4-beta-sync.apk)**

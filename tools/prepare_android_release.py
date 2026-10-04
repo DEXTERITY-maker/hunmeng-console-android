@@ -32,7 +32,7 @@ def require(condition, message):
 def run_tool(arguments, *, allow_failure=False):
     """Tool output may contain sensitive diagnostics. Never echo it on failure."""
     try:
-        result = subprocess.run(arguments, capture_output=True, text=True, timeout=120)
+        result = subprocess.run(arguments, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=120)
     except (OSError, subprocess.TimeoutExpired):
         raise PreparationError(f"Tool unavailable or timed out: {Path(arguments[0]).name}") from None
     if result.returncode and not allow_failure:
@@ -141,7 +141,7 @@ def prepare(args):
             signed = Path(working) / "signed.apk"
             run_tool(["zipalign", "-P", "16", "4", str(source), str(aligned)])
             run_tool(["apksigner", "sign", "--ks", str(signing["release.jks"]), "--ks-key-alias", "hunmeng-console-release",
-                      "--ks-pass", f"file:{signing['store-password']}", "--key-pass", f"file:{signing['store-password']}",
+                      "--ks-pass", f"file:{signing['store-password']}",
                       "--v1-signing-enabled", "false", "--v2-signing-enabled", "true", "--v3-signing-enabled", "true",
                       "--v4-signing-enabled", "false", "--out", str(signed), str(aligned)])
             verify_signer(run_tool(["apksigner", "verify", "--verbose", "--print-certs", str(signed)]).stdout)
