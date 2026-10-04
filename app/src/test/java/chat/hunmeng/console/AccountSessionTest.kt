@@ -35,7 +35,7 @@ class AccountSessionTest {
     }
     private fun record() = AccountSessionRecord(7L, "TEST_OPAQUE_ACCOUNT_SESSION_".padEnd(43, '_'), ByteArray(32) { 9 })
 
-    @Test fun persistsOnlyAfterBothIdentitiesAreVerifiedThenErasesOnLogout() = runTest {
+    @Test fun profilePersistsImmediatelyAndClientConsentIsSeparateThenLogoutErases() = runTest {
         val store = Store(); val verifier = Verifier(); val client = Client()
         var consoleCleared = false
         val coordinator = AccountSessionCoordinator(store, verifier, client) { consoleCleared = true }
@@ -43,6 +43,9 @@ class AccountSessionTest {
         coordinator.acceptLogin(record)
         assertEquals(AccountPhase.VERIFIED, coordinator.state.value.phase)
         assertEquals(1, store.saves)
+        assertEquals(AccountClientPhase.UNCONNECTED, coordinator.state.value.clientPhase)
+        coordinator.connectClient(TelegramApiApplication(1000, "a".repeat(32)))
+        assertEquals(AccountClientPhase.READY, coordinator.state.value.clientPhase)
         coordinator.logout()
         assertTrue(consoleCleared && client.cleaned)
         assertNull(store.payload)
@@ -50,10 +53,9 @@ class AccountSessionTest {
         assertEquals(AccountPhase.SIGNED_OUT, coordinator.state.value.phase)
         assertFalse(coordinator.state.value.remoteRevocationUnconfirmed)
     }
-    @Test fun foreignServerOrTelegramIdentityNeverGrantsAccessOrPersists() = runTest {
-        for (serverMismatch in listOf(true, false)) {
+    @Test fun foreignServerIdentityNeverGrantsProfileAccessOrPersists() = runTest {
             val store = Store(); val verifier = Verifier(); val client = Client()
-            if (serverMismatch) verifier.userId = 8L else client.userId = 8L
+            verifier.userId = 8L
             val coordinator = AccountSessionCoordinator(store, verifier, client) {}
             val record = record()
             coordinator.acceptLogin(record)
@@ -61,7 +63,15 @@ class AccountSessionTest {
             assertNull(coordinator.state.value.account)
             assertEquals(0, store.saves)
             assertTrue(record.databaseKey.all { it == 0.toByte() })
-        }
+    }
+    @Test fun foreignClientIdentityNeverGrantsInventoryAccessButDoesNotHideVerifiedProfile() = runTest {
+        val store = Store(); val client = Client().apply { userId = 8L }
+        val coordinator = AccountSessionCoordinator(store, Verifier(), client) {}
+        coordinator.acceptLogin(record())
+        coordinator.connectClient(TelegramApiApplication(1000, "a".repeat(32)))
+        assertEquals(AccountPhase.VERIFIED, coordinator.state.value.phase)
+        assertEquals(7L, coordinator.state.value.account?.telegramId)
+        assertEquals(AccountClientPhase.ERROR, coordinator.state.value.clientPhase)
     }
     @Test fun restoredBytesDoNotProveIdentityAndRequireServerRevalidation() = runTest {
         val store = Store().apply { payload = record().encode() }

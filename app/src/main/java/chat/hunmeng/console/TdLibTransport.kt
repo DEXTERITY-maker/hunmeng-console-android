@@ -29,7 +29,7 @@ internal class TdLibRuntime(private val bridge: TdJsonBridge, private val scope:
     private val clients = ConcurrentHashMap<Int, TdLibClient>()
     private var receiver: Job? = null
     @Synchronized fun client(): TdLibClient {
-        if (receiver == null) {
+        if (receiver?.isActive != true) {
             bridge.execute(JSONObject().put("@type", "setLogStream").put("log_stream", JSONObject().put("@type", "logStreamEmpty")).toString())
             bridge.execute(JSONObject().put("@type", "setLogVerbosityLevel").put("new_verbosity_level", 0).toString())
             receiver = scope.launch(Dispatchers.IO) {
@@ -74,13 +74,15 @@ internal class TdLibClient(private val id: Int, private val bridge: TdJsonBridge
             if (json.optString("@type") == "error") {
                 val retry = Regex("(?:FLOOD_WAIT_|retry after )(\\d+)", RegexOption.IGNORE_CASE).find(json.optString("message"))?.groupValues?.get(1)?.toIntOrNull()
                 answer.completeExceptionally(TdLibException(json.optInt("code"), retry))
-            } else answer.complete(json)
+            } else {
+                if (json.optString("@type").startsWith("authorizationState")) authorizationUpdate(json)
+                answer.complete(json)
+            }
             return
         }
         if (json.optString("@type") == "updateAuthorizationState") {
             val auth = json.optJSONObject("authorization_state") ?: return
-            _authorization.value = auth.optString("@type")
-            _qrLink.value = auth.optString("link").takeIf { _authorization.value == "authorizationStateWaitOtherDeviceConfirmation" && it.startsWith("tg://login?token=") }
+            authorizationUpdate(auth)
             if (_authorization.value == "authorizationStateClosed") {
                 closed = true
                 requests.values.forEach { it.cancel() }; requests.clear()
@@ -89,10 +91,20 @@ internal class TdLibClient(private val id: Int, private val bridge: TdJsonBridge
             }
         }
     }
+    private fun authorizationUpdate(auth: JSONObject) {
+        _authorization.value = auth.optString("@type")
+        _qrLink.value = auth.optString("link").takeIf { _authorization.value == "authorizationStateWaitOtherDeviceConfirmation" && it.startsWith("tg://login?token=") }
+    }
 
     suspend fun close(): Boolean {
         if (closed) return true
         try { request("close", timeout = 10_000) } catch (_: Exception) { /* still await native closure */ }
         return withTimeoutOrNull(15_000) { authorization.first { it == "authorizationStateClosed" }; true } ?: false
     }
+}
+
+/** Activity recreation cannot create a second native receiver. */
+internal object ProcessTelegramClient {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    val runtime: TdLibRuntime by lazy { TdLibRuntime(NativeTdJsonBridge, scope) }
 }

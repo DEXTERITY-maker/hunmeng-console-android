@@ -56,7 +56,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.PrimaryScrollableTabRow
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.material3.Tab
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -85,7 +86,16 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // Credentials live only in the ViewModel; Android autofill must not retain them.
         window.decorView.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
+        intent?.data?.toString()?.let(viewModel::loginCallback)
+        intent?.data = null
         setContent { HunmengConsole(viewModel) }
+    }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        val callback = intent.data?.toString()
+        intent.data = null
+        setIntent(intent)
+        callback?.let(viewModel::loginCallback)
     }
 }
 
@@ -103,13 +113,13 @@ private fun HunmengConsole(viewModel: ConsoleViewModel) {
                 }
             }
         }
-        ConsoleScreen(state, viewModel.console)
+        AccountAppScreen(viewModel, state)
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController) {
+internal fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController) {
     val context = LocalContext.current
     val ru = state.language == UiLanguage.RU
     fun t(ruText: String, enText: String) = if (ru) ruText else enText
@@ -124,28 +134,6 @@ private fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController) {
     val messageScroll = rememberScrollState()
     val eventsScroll = rememberScrollState()
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    Image(painterResource(R.drawable.brand_icon), contentDescription = null, modifier = Modifier.size(38.dp))
-                    Column {
-                        Text("Hunmeng Console", style = MaterialTheme.typography.titleMedium)
-                        Text(DISPLAY_VERSION, style = MaterialTheme.typography.labelSmall)
-                    }
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { settingsVisible = true }) {
-                        Icon(painterResource(R.drawable.ic_theme), contentDescription = t("Настройки темы", "Theme settings"))
-                    }
-                    FilterChip(selected = ru, onClick = { vm.setLanguage(UiLanguage.RU) }, label = { Text("RU") })
-                    Spacer(Modifier.padding(3.dp))
-                    FilterChip(selected = !ru, onClick = { vm.setLanguage(UiLanguage.EN) }, label = { Text("EN") })
-                    Spacer(Modifier.padding(6.dp))
-                },
-            )
-        },
         bottomBar = {
             Surface(shadowElevation = 6.dp, color = MaterialTheme.colorScheme.surface) {
                 Column(Modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -166,9 +154,9 @@ private fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController) {
         contentWindowInsets = WindowInsets.safeDrawing,
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
-        PrimaryTabRow(selectedTabIndex = state.selectedTab.ordinal) {
+        PrimaryScrollableTabRow(selectedTabIndex = state.selectedTab.ordinal, edgePadding = 0.dp) {
             ConsoleTab.entries.forEach { tab ->
-                Tab(selected = state.selectedTab == tab, onClick = { vm.selectTab(tab) }, text = { Text(tab.label.text(state.language)) })
+                Tab(selected = state.selectedTab == tab, onClick = { vm.selectTab(tab) }, text = { Text(tab.label.text(state.language), maxLines = 1, softWrap = false) })
             }
         }
         val scroll = when (state.selectedTab) { ConsoleTab.BOT -> botScroll; ConsoleTab.MESSAGE -> messageScroll; ConsoleTab.EVENTS -> eventsScroll }
@@ -181,8 +169,13 @@ private fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController) {
                 Text(state.bot?.let { it.username?.let { username -> "@$username" } ?: it.firstName } ?: t("Бот не подключён", "No bot connected"), style = MaterialTheme.typography.titleLarge)
                 Text(statusText(state.status).text(state.language), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(t("Последний успешный запрос: ", "Last successful request: ") + (state.lastSuccessfulRequest ?: "—"), style = MaterialTheme.typography.bodySmall)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(t("Получено", "Received") to state.counters.received, t("Отвечено", "Replied") to state.counters.replied, t("Ошибки", "Errors") to state.counters.errors).forEach { (label, value) ->
+                val counters = listOf(t("Получено", "Received") to state.counters.received, t("Отвечено", "Replied") to state.counters.replied, t("Ошибки", "Errors") to state.counters.errors)
+                if (LocalDensity.current.fontScale > 1.3f) {
+                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        counters.forEach { (label, value) -> Text("$label: $value", style = MaterialTheme.typography.bodyLarge) }
+                    }
+                } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    counters.forEach { (label, value) ->
                         Surface(Modifier.weight(1f), shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
                             Column(Modifier.padding(10.dp)) { Text(value.toString(), style = MaterialTheme.typography.titleLarge); Text(label, style = MaterialTheme.typography.bodySmall) }
                         }

@@ -71,7 +71,8 @@ internal interface TelegramClientSession {
 internal data class ClientSessionCleanup(val localDeleted: Boolean, val remoteRevoked: Boolean)
 
 enum class AccountPhase { SIGNED_OUT, RESTORING, VERIFIED, UNAVAILABLE, SIGNING_OUT, CLEANUP_REQUIRED }
-data class AccountSessionState(val phase: AccountPhase = AccountPhase.SIGNED_OUT, val account: VerifiedAccount? = null, val remoteRevocationUnconfirmed: Boolean = false)
+enum class AccountClientPhase { UNCONNECTED, CONNECTING, READY, ERROR, CLEANUP_REQUIRED }
+data class AccountSessionState(val phase: AccountPhase = AccountPhase.SIGNED_OUT, val account: VerifiedAccount? = null, val remoteRevocationUnconfirmed: Boolean = false, val clientPhase: AccountClientPhase = AccountClientPhase.UNCONNECTED, val hasClientConfiguration: Boolean = false)
 
 /** Logout invalidates in-flight results before cleanup starts; persistence is serialized. */
 internal class AccountSessionCoordinator(
@@ -130,8 +131,6 @@ internal class AccountSessionCoordinator(
             val profile = withTimeout(15_000) { verifier.verify(record.serverSession) }
             require(profile.telegramId == record.accountId)
             if (lease != generation.get()) return
-            val telegramId = withTimeout(300_000) { telegram.resume(record) }
-            require(telegramId == profile.telegramId)
             lock.withLock {
                 if (lease != generation.get()) return@withLock
                 if (persist) store.save(record)
@@ -139,15 +138,65 @@ internal class AccountSessionCoordinator(
                 current?.clearKey()
                 current = record
                 retained = true
-                _state.value = AccountSessionState(AccountPhase.VERIFIED, profile)
+                _state.value = AccountSessionState(AccountPhase.VERIFIED, profile, hasClientConfiguration = record.apiApplication != null)
             }
         } finally {
             if (!retained) {
-                withContext(NonCancellable) { withTimeoutOrNull(30_000) { try { telegram.closeWithoutErasing() } catch (_: Exception) { } } }
+                if (persist) withContext(NonCancellable) { withTimeoutOrNull(15_000) { try { verifier.revoke(record.serverSession) } catch (_: Exception) { } } }
                 record.clearKey()
             }
         }
     }
+
+    /** OIDC proves the profile. The separate client consent alone permits the inventory. */
+    suspend fun connectClient(application: TelegramApiApplication? = null) = operationLock.withLock {
+        check(_state.value.phase == AccountPhase.VERIFIED && _state.value.clientPhase != AccountClientPhase.READY)
+        val saved = checkNotNull(current)
+        val config = application ?: saved.apiApplication ?: throw IllegalStateException("Client application required")
+        val job = currentCoroutineContext()[Job]
+        activeOperation.set(job)
+        val lease = generation.incrementAndGet()
+        _state.value = _state.value.copy(clientPhase = AccountClientPhase.CONNECTING)
+        var ready = false
+        try {
+            val profile = withTimeout(15_000) { verifier.verify(saved.serverSession) }
+            require(profile.telegramId == saved.accountId)
+            val updated = AccountSessionRecord(saved.accountId, saved.serverSession, saved.databaseKey.copyOf(), config)
+            try {
+                lock.withLock {
+                    if (lease != generation.get()) return@withLock
+                    store.save(updated)
+                    current = updated
+                    saved.clearKey()
+                }
+                if (lease != generation.get()) { updated.clearKey(); return@withLock }
+                val id = withTimeout(300_000) { telegram.resume(updated) }
+                require(id == profile.telegramId)
+                if (lease == generation.get()) {
+                    ready = true
+                    _state.value = _state.value.copy(clientPhase = AccountClientPhase.READY, hasClientConfiguration = true)
+                }
+            } catch (error: Exception) {
+                if (current !== updated) updated.clearKey()
+                throw error
+            }
+        } catch (_: TimeoutCancellationException) {
+            if (lease == generation.get()) _state.value = _state.value.copy(clientPhase = AccountClientPhase.ERROR)
+        } catch (cancelled: CancellationException) {
+            if (lease == generation.get()) _state.value = _state.value.copy(clientPhase = AccountClientPhase.UNCONNECTED)
+            throw cancelled
+        } catch (_: Exception) {
+            if (lease == generation.get()) _state.value = _state.value.copy(clientPhase = AccountClientPhase.ERROR)
+        } finally {
+            if (!ready) withContext(NonCancellable) {
+                val closed = withTimeoutOrNull(30_000) { try { telegram.closeWithoutErasing() } catch (_: Exception) { false } } ?: false
+                if (!closed && lease == generation.get()) _state.value = _state.value.copy(clientPhase = AccountClientPhase.CLEANUP_REQUIRED)
+            }
+            activeOperation.compareAndSet(job, null)
+        }
+    }
+
+    fun cancelClientConnection() { if (_state.value.clientPhase == AccountClientPhase.CONNECTING) activeOperation.get()?.cancel() }
 
     suspend fun logout() {
         val lease = generation.incrementAndGet()

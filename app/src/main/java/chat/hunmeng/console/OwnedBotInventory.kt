@@ -10,12 +10,16 @@ data class BotChat(val chat: ChatPreview, val botRole: String, val canPost: Bool
 data class AccessibleBotChats(val items: List<BotChat>, val checkedAt: Instant, val inaccessibleCount: Int, val scanComplete: Boolean)
 data class OwnedBotInventoryState(val phase: InventoryPhase = InventoryPhase.UNCONNECTED, val bots: List<OwnedBot> = emptyList(), val checkedAt: Instant? = null)
 
-internal class TdLibInventorySource(private val client: TdLibClient, private val owner: VerifiedAccount, private val clock: () -> Instant = Instant::now) {
+internal interface OwnedInventorySource {
+    suspend fun ownedBots(): List<OwnedBot>
+    suspend fun availableChats(bot: OwnedBot): AccessibleBotChats
+}
+internal class TdLibInventorySource(private val client: TdLibClient, private val owner: VerifiedAccount, private val clock: () -> Instant = Instant::now) : OwnedInventorySource {
     private suspend fun verifyIdentity() {
         val me = client.request("getMe")
         require(me.optString("@type") == "user" && me.optLong("id") == owner.telegramId) { "Telegram account mismatch" }
     }
-    suspend fun ownedBots(): List<OwnedBot> {
+    override suspend fun ownedBots(): List<OwnedBot> {
         verifyIdentity()
         val result = client.request("getOwnedBots")
         require(result.optString("@type") == "users")
@@ -34,7 +38,7 @@ internal class TdLibInventorySource(private val client: TdLibClient, private val
         verifyIdentity()
         return bots.distinctBy { it.bot.id }
     }
-    suspend fun availableChats(bot: OwnedBot): AccessibleBotChats {
+    override suspend fun availableChats(bot: OwnedBot): AccessibleBotChats {
         require(bot.verifiedOwnerId == owner.telegramId)
         // A caller-supplied card or ID cannot grant access to another account's bot.
         require(ownedBots().any { it.bot.id == bot.bot.id })
@@ -53,7 +57,9 @@ internal class TdLibInventorySource(private val client: TdLibClient, private val
         val result = mutableListOf<BotChat>()
         var noAccess = 0
         for (chatId in candidates) {
-            val chat = client.request("getChat", JSONObject().put("chat_id", chatId))
+            delay(100)
+            val chat = try { client.request("getChat", JSONObject().put("chat_id", chatId)) }
+            catch (error: TdLibException) { if (error.code == 429 || error.retryAfter != null) throw error; noAccess++; continue }
             val type = chat.optJSONObject("type") ?: continue
             val channel = type.optString("@type") == "chatTypeSupergroup" && type.optBoolean("is_channel")
             if (type.optString("@type") !in setOf("chatTypeBasicGroup", "chatTypeSupergroup")) continue

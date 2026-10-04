@@ -20,6 +20,12 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
+        // Public client ID only. Client Secret belongs exclusively to the server runtime.
+        val loginClientId = providers.gradleProperty("telegramLoginClientId").getOrElse("0")
+        require(loginClientId == "0" || Regex("[1-9][0-9]{4,15}").matches(loginClientId))
+        buildConfigField("String", "TELEGRAM_LOGIN_CLIENT_ID", "\"$loginClientId\"")
+        buildConfigField("String", "LOGIN_BACKEND_URL", "\"https://telegram-bot-console.hunmeng.chatgpt.site/\"")
+        manifestPlaceholders["telegramLoginHost"] = "app$loginClientId-login.tg.dev"
     }
 
     buildTypes {
@@ -61,6 +67,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.4")
     implementation("androidx.lifecycle:lifecycle-process:2.9.4")
     implementation("androidx.core:core-ktx:1.17.0")
+    implementation("androidx.browser:browser:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 

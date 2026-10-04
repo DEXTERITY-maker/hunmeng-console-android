@@ -18,6 +18,7 @@ private val LightColors = lightColorScheme(
     // Slightly darker button fill keeps white text above 4.5:1 contrast.
     primary = Color(0xFF0068D9), onPrimary = Color.White,
     primaryContainer = Color(0xFFE1EEFF), onPrimaryContainer = Color(0xFF004EAF),
+    secondaryContainer = Color(0xFFE1EEFF), onSecondaryContainer = Color(0xFF004EAF),
     background = Color(0xFFF6F8FC), onBackground = Color(0xFF152238),
     surface = Color.White, onSurface = Color(0xFF152238),
     surfaceVariant = Color(0xFFECF1F8), onSurfaceVariant = Color(0xFF52617A),
@@ -26,6 +27,7 @@ private val LightColors = lightColorScheme(
 private val DarkColors = darkColorScheme(
     primary = Color(0xFF66B7FF), onPrimary = Color(0xFF002D57),
     primaryContainer = Color(0xFF123D69), onPrimaryContainer = Color(0xFFCCE5FF),
+    secondaryContainer = Color(0xFF123D69), onSecondaryContainer = Color(0xFFCCE5FF),
     background = Color(0xFF0E1923), onBackground = Color(0xFFF2F6FA),
     surface = Color(0xFF192631), onSurface = Color(0xFFF2F6FA),
     surfaceVariant = Color(0xFF243444), onSurfaceVariant = Color(0xFFB5C5D8),
