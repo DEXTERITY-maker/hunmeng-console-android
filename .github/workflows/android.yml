@@ -2,6 +2,12 @@ name: Build Android APK
 
 on:
   workflow_dispatch:
+    inputs:
+      telegram_login_client_id:
+        description: 'Public BotFather Client ID only; 0 keeps Login unconfigured'
+        required: false
+        default: '0'
+        type: string
   push:
     branches: [main]
   pull_request:
@@ -14,6 +20,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '26'
+      - run: node --test server/telegram-login/*.test.mjs
+
   native:
     permissions:
       contents: read
@@ -81,7 +97,7 @@ jobs:
           retention-days: 30
 
   build:
-    needs: native
+    needs: [native, server]
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -109,8 +125,28 @@ jobs:
           pattern: tdlib-*
           path: app/src/main/jniLibs
           merge-multiple: true
-      - name: Test, lint and assemble
-        run: ./gradlew testDebugUnitTest lintDebug assembleDebug --no-daemon --console=plain
+      - name: Check local release preparation with synthetic fixtures
+        run: python3 -m unittest discover -s tools -p 'test_prepare_android_release.py' -v
+      - name: Test, lint and assemble debug and unsigned release
+        env:
+          LOGIN_CLIENT_ID: ${{ inputs.telegram_login_client_id || '0' }}
+        run: ./gradlew -PtelegramLoginClientId="$LOGIN_CLIENT_ID" testDebugUnitTest lintDebug lintRelease assembleDebug assembleRelease --no-daemon --console=plain
+      - name: Check unsigned release metadata and alignment
+        run: |
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 4 app/build/outputs/apk/release/app-release-unsigned.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging app/build/outputs/apk/release/app-release-unsigned.apk > release-badging.txt
+          if grep -q '^application-debuggable$' release-badging.txt; then exit 1; fi
+          sha256sum app/build/outputs/apk/release/app-release-unsigned.apk > release-apk.sha256
+      - name: Upload unsigned release candidate for local signing
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hunmeng-console-unsigned-release
+          path: |
+            app/build/outputs/apk/release/app-release-unsigned.apk
+            release-badging.txt
+            release-apk.sha256
+          if-no-files-found: error
+          retention-days: 30
       - name: Upload debug APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
