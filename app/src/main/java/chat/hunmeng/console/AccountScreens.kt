@@ -65,7 +65,7 @@ internal fun AccountAppScreen(vm: ConsoleViewModel, console: ConsoleUiState) {
             }
         },
         bottomBar = {
-            NavigationBar {
+            NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                 AppDestination.entries.forEach { destination ->
                     NavigationBarItem(selected = state.destination == destination, onClick = { vm.accounts.destination(destination) },
                         icon = { Icon(painterResource(when (destination) { AppDestination.MY_BOTS -> R.drawable.ic_bookmark; AppDestination.CONSOLE -> R.drawable.ic_plane; AppDestination.PROFILE -> R.drawable.ic_theme }), null) },

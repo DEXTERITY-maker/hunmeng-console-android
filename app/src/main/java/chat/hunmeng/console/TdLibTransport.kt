@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import org.drinkless.tdlib.JsonClient
 import org.json.JSONObject
+import kotlinx.coroutines.sync.Mutex
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
@@ -29,6 +30,9 @@ internal class TdLibRuntime(private val bridge: TdJsonBridge, private val scope:
     private val clients = ConcurrentHashMap<Int, TdLibClient>()
     private var receiver: Job? = null
     @Synchronized fun client(): TdLibClient {
+        try { return createClient() } catch (_: LinkageError) { throw IllegalStateException("Telegram client runtime unavailable") }
+    }
+    private fun createClient(): TdLibClient {
         if (receiver?.isActive != true) {
             bridge.execute(JSONObject().put("@type", "setLogStream").put("log_stream", JSONObject().put("@type", "logStreamEmpty")).toString())
             bridge.execute(JSONObject().put("@type", "setLogVerbosityLevel").put("new_verbosity_level", 0).toString())
@@ -106,5 +110,7 @@ internal class TdLibClient(private val id: Int, private val bridge: TdJsonBridge
 /** Activity recreation cannot create a second native receiver. */
 internal object ProcessTelegramClient {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    val directoryLock = Mutex()
     val runtime: TdLibRuntime by lazy { TdLibRuntime(NativeTdJsonBridge, scope) }
+    fun closeLater(session: TelegramClientSession) { scope.launch { try { session.closeWithoutErasing() } catch (_: Exception) { } } }
 }

@@ -19,5 +19,6 @@ internal class AndroidAccountSessionStore(context: Context, private val tools: A
         try { vault.erase() } catch (error: Exception) { failure = error }
         try { tools.erase() } catch (error: Exception) { failure = error }
         failure?.let { throw it }
+        Unit
     }
 }

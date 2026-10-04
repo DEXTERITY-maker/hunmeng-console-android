@@ -75,6 +75,7 @@ class ConsoleViewModel(application: Application) : AndroidViewModel(application)
         lifecycle.removeObserver(this)
         console.close()
         updates.close()
+        ProcessTelegramClient.closeLater(telegramClient)
         super.onCleared()
     }
 }

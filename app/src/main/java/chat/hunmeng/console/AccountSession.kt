@@ -192,7 +192,7 @@ internal class AccountSessionCoordinator(
             if (lease == generation.get()) _state.value = _state.value.copy(clientPhase = AccountClientPhase.UNCONNECTED)
             throw cancelled
         } catch (_: Exception) {
-            if (lease == generation.get()) _state.value = _state.value.copy(clientPhase = AccountClientPhase.ERROR)
+            if (lease == generation.get() && _state.value.clientPhase != AccountClientPhase.CLEANUP_REQUIRED) _state.value = _state.value.copy(clientPhase = AccountClientPhase.ERROR)
         } finally {
             if (!ready) withContext(NonCancellable) {
                 val closed = withTimeoutOrNull(30_000) { try { telegram.closeWithoutErasing() } catch (_: Exception) { false } } ?: false

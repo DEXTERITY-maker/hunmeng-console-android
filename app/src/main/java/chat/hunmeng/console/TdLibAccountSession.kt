@@ -21,6 +21,7 @@ internal class TdLibAccountSession(context: Context, private val runtime: TdLibR
     private val directory = File(context.noBackupFilesDir, "telegram-client")
     private var client: TdLibClient? = null
     private var watcher: Job? = null
+    private var directoryLease = false
     private val _phase = MutableStateFlow("unconnected")
     val phase: StateFlow<String> = _phase.asStateFlow()
     private val _qrLink = MutableStateFlow<String?>(null)
@@ -29,7 +30,9 @@ internal class TdLibAccountSession(context: Context, private val runtime: TdLibR
     override suspend fun resume(session: AccountSessionRecord): Long {
         val config = session.apiApplication ?: throw IllegalStateException("Telegram client application is not configured")
         check(client == null) { "Telegram client is already connected" }
-        val active = runtime.client()
+        ProcessTelegramClient.directoryLock.lock()
+        directoryLease = true
+        val active = try { runtime.client() } catch (error: Exception) { releaseDirectory(); throw error }
         client = active
         _phase.value = "connecting"
         watcher = scope.launch {
@@ -74,7 +77,7 @@ internal class TdLibAccountSession(context: Context, private val runtime: TdLibR
         val closed = client?.close() ?: true
         watcher?.cancelAndJoin(); watcher = null
         _qrLink.value = null
-        if (closed) { client = null; _phase.value = "unconnected" } else _phase.value = "cleanup_required"
+        if (closed) { client = null; releaseDirectory(); _phase.value = "unconnected" } else _phase.value = "cleanup_required"
         return closed
     }
     override suspend fun revokeCloseAndErase(): ClientSessionCleanup {
@@ -99,6 +102,8 @@ internal class TdLibAccountSession(context: Context, private val runtime: TdLibR
             } catch (_: Exception) { false }
         }
         _phase.value = if (deleted) "unconnected" else "cleanup_required"
+        if (deleted) releaseDirectory()
         return ClientSessionCleanup(deleted, revoked)
     }
+    private fun releaseDirectory() { if (directoryLease) { directoryLease = false; ProcessTelegramClient.directoryLock.unlock() } }
 }
