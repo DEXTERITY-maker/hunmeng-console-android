@@ -13,7 +13,9 @@
 
 ## Конфигурация владельца
 
-В BotFather выбранный бот должен представлять Hunmeng Console. Login Widget должен использовать RS256 и разрешённый URL `https://app<client_id>-login.tg.dev/tglogin`. В Android-настройках регистрируются package `chat.hunmeng.console` и постоянный SHA-256 сертификата из `reports/v0.0.5-signing.md`.
+Владелец выбрал **@hunmeng_official_bot**. Client ID/Secret из его Login Widget ещё не предоставлены; username не заменяет Client ID. [Точные данные для BotFather и следующий шаг](OWNER-SETUP.md).
+
+Login Widget должен использовать RS256 и redirect `https://app<client_id>-login.tg.dev/tglogin`. В Android-настройках регистрируются package `chat.hunmeng.console` и постоянный SHA-256 сертификата из `reports/v0.0.5-signing.md`. Базовый домен Android App Link генерируется Telegram автоматически.
 
 Runtime values задаются как секреты в Sites: `TELEGRAM_LOGIN_CLIENT_SECRET`, `TELEGRAM_LOGIN_DATA_KEY` (32 случайных байта base64url). `TELEGRAM_LOGIN_CLIENT_ID` — публичный идентификатор. Секреты не включаются в исходники, APK, команды shell или ответы пользователю. До заполнения `/config` отвечает `configured: false`, остальные операции — `login_not_configured`, без выдуманного профиля.
 
