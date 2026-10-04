@@ -14,16 +14,19 @@ import kotlinx.coroutines.CancellationException
 class ConsoleViewModel(application: Application) : AndroidViewModel(application), DefaultLifecycleObserver {
     private val lifecycle get() = ProcessLifecycleOwner.get().lifecycle
     private val preferences = application.getSharedPreferences("hunmeng_console", Context.MODE_PRIVATE)
-    val console = ConsoleController(object : ConsolePreferences {
+    private val consolePreferences = object : ConsolePreferences {
         override fun getString(key: String, fallback: String) = preferences.getString(key, fallback)
         override fun getBoolean(key: String, fallback: Boolean) = preferences.getBoolean(key, fallback)
         override fun putString(key: String, value: String) { preferences.edit().putString(key, value).apply() }
         override fun putBoolean(key: String, value: Boolean) { preferences.edit().putBoolean(key, value).apply() }
         override fun remove(key: String) { preferences.edit().remove(key).apply() }
-    }, viewModelScope, lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
+    }
+    val console = ConsoleController(consolePreferences, viewModelScope, lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
+    internal val updates = AndroidUpdateController(GithubAndroidReleases(application), installedAndroidApp(application), consolePreferences, viewModelScope)
     private val gateway = TelegramLoginGateway()
+    private val toolsStore = AndroidAccountToolsStore(application)
     internal val telegramClient = TdLibAccountSession(application, ProcessTelegramClient.runtime, viewModelScope)
-    internal val accountSession = AccountSessionCoordinator(AndroidAccountSessionStore(application), gateway, telegramClient) {
+    internal val accountSession = AccountSessionCoordinator(AndroidAccountSessionStore(application, toolsStore), gateway, telegramClient) {
         console.clearAccountData()
     }
     internal val accounts = AccountController(accountSession, viewModelScope, telegramClient::inventory, console)
@@ -35,6 +38,23 @@ class ConsoleViewModel(application: Application) : AndroidViewModel(application)
         lifecycle.addObserver(this)
         viewModelScope.launch { accountSession.restore() }
         viewModelScope.launch { login.restore() }
+        console.onSavedToolsChanged = { tools -> viewModelScope.launch {
+            try { toolsStore.save(tools) { accountSession.state.value.phase == AccountPhase.VERIFIED && accountSession.state.value.account?.telegramId == tools.accountId } }
+            catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { if (accountSession.state.value.account?.telegramId == tools.accountId) console.toolsStorageError() }
+        } }
+        viewModelScope.launch {
+            accountSession.state.collect { session ->
+                val id = session.account?.telegramId
+                if (session.phase == AccountPhase.VERIFIED && id != null && console.state.value.toolsAccountId != id) {
+                    try {
+                        val tools = toolsStore.load(id)
+                        if (accountSession.state.value.phase == AccountPhase.VERIFIED && accountSession.state.value.account?.telegramId == id) console.bindAccountTools(tools)
+                    } catch (cancelled: CancellationException) { throw cancelled }
+                    catch (_: Exception) { console.toolsStorageError() }
+                }
+            }
+        }
     }
     fun loginCallback(value: String) { viewModelScope.launch { try { login.callback(value) } catch (cancelled: CancellationException) { throw cancelled } catch (_: Exception) { } } }
     fun cancelLogin() { viewModelScope.launch { login.cancel() } }
@@ -54,6 +74,7 @@ class ConsoleViewModel(application: Application) : AndroidViewModel(application)
     override fun onCleared() {
         lifecycle.removeObserver(this)
         console.close()
+        updates.close()
         super.onCleared()
     }
 }

@@ -61,6 +61,7 @@ data class ConsoleUiState(
     val verifiedRecipient: ChatPreview? = null,
     val toolsError: ConsoleText? = null,
     val selectedOwnedBot: OwnedBot? = null,
+    val toolsAccountId: Long? = null,
 )
 
 interface ConsolePreferences {
@@ -517,7 +518,19 @@ class ConsoleController(
     }
 
     private fun setSendError(error: ConsoleText) = update { it.copy(sendError = error) }
-    private fun update(transform: (ConsoleUiState) -> ConsoleUiState) { _state.value = transform(_state.value) }
+    internal var onSavedToolsChanged: ((AccountTools) -> Unit)? = null
+    private fun update(transform: (ConsoleUiState) -> ConsoleUiState) {
+        val before = _state.value
+        val after = transform(before)
+        _state.value = after
+        if (after.toolsAccountId != null && (before.templates != after.templates || before.favorites != after.favorites))
+            onSavedToolsChanged?.invoke(AccountTools(after.toolsAccountId, after.templates, after.favorites))
+    }
+    internal fun bindAccountTools(tools: AccountTools) {
+        tools.validate()
+        _state.value = _state.value.copy(toolsAccountId = tools.accountId, templates = tools.templates, favorites = tools.favorites)
+    }
+    internal fun toolsStorageError() { update { it.copy(toolsError = ConsoleText("Не удалось сохранить или прочитать инструменты аккаунта", "Could not save or read account tools")) } }
     private fun now(): String = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
     private fun botDisplay(bot: BotUser): String = bot.username?.let { "@$it" } ?: bot.firstName
 
@@ -562,7 +575,8 @@ class ConsoleController(
     fun deleteFavorite(chatId: Long) = update { it.copy(favorites = it.favorites.filterNot { saved -> saved.botId == it.bot?.id && saved.chat.id == chatId }) }
     private fun markSuccess(instant: Instant) = update { it.copy(lastSuccessAt = instant, lastSuccessfulRequest = now()) }
 
-    fun close() {
+    fun close(preserveAccountTools: Boolean = false) {
+        val tools = if (preserveAccountTools) state.value else null
         val oldPolling = polling
         session++
         listOfNotNull(connectJob, commandJob, pollingActionJob, webhookJob, previewJob, sendJob).forEach { it.cancel() }
@@ -574,7 +588,7 @@ class ConsoleController(
         polling = null
         nextOffset = null
         handledUpdates.clear()
-        _state.value = ConsoleUiState(language = state.value.language, themeMode = state.value.themeMode, welcome = defaultWelcome(state.value.language))
+        _state.value = ConsoleUiState(language = state.value.language, themeMode = state.value.themeMode, welcome = defaultWelcome(state.value.language), toolsAccountId = tools?.toolsAccountId, templates = tools?.templates ?: emptyList(), favorites = tools?.favorites ?: emptyList())
     }
 
     fun clearAccountData() {
@@ -586,8 +600,9 @@ class ConsoleController(
     fun selectOwnedBot(bot: OwnedBot) {
         val templates = state.value.templates
         val favorites = state.value.favorites
+        val accountId = state.value.toolsAccountId
         close()
-        update { it.copy(selectedOwnedBot = bot, templates = templates, favorites = favorites, welcome = if (prefs.getBoolean("welcome_custom", false)) prefs.getString("welcome", "") ?: "" else defaultWelcome(it.language), welcomeCustom = prefs.getBoolean("welcome_custom", false), echoEnabled = prefs.getBoolean("echo", false)) }
+        update { it.copy(selectedOwnedBot = bot, templates = templates, favorites = favorites, toolsAccountId = accountId, welcome = if (prefs.getBoolean("welcome_custom", false)) prefs.getString("welcome", "") ?: "" else defaultWelcome(it.language), welcomeCustom = prefs.getBoolean("welcome_custom", false), echoEnabled = prefs.getBoolean("echo", false)) }
     }
 
     companion object {

@@ -61,7 +61,7 @@ internal class AccountController(
                 require(bots.all { it.verifiedOwnerId == account.telegramId })
                 if (valid(lease, account)) {
                     val selected = _state.value.selectedBot?.let { old -> bots.firstOrNull { it.bot.id == old.bot.id } }
-                    if (selected == null && _state.value.selectedBot != null) console.close()
+                    if (selected == null && _state.value.selectedBot != null) console.close(preserveAccountTools = true)
                     _state.value = _state.value.copy(inventory = OwnedBotInventoryState(if (bots.isEmpty()) InventoryPhase.EMPTY else InventoryPhase.READY, bots, Instant.now()), selectedBot = selected)
                 }
             } catch (cancelled: CancellationException) { throw cancelled }

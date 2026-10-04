@@ -40,6 +40,7 @@ internal class AccountSessionRecord(val accountId: Long, val serverSession: Stri
         .toString().toByteArray(Charsets.UTF_8)
     companion object {
         fun decode(payload: ByteArray): AccountSessionRecord {
+            require(payload.size in 1..16_384)
             val json = JSONObject(String(payload, Charsets.UTF_8))
             require(json.optInt("version") == 1 && json.opt("account_id") is Number)
             val app = json.optJSONObject("api_application")?.let { TelegramApiApplication(it.getInt("id"), it.getString("hash")) }

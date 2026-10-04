@@ -7,9 +7,9 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /** Authenticated envelope for account sessions. Bot API tokens never enter this store. */
-internal class SessionEncryption(private val key: () -> SecretKey) {
+internal class SessionEncryption(private val key: () -> SecretKey, private val maxPlaintext: Int = MAX_PLAINTEXT) {
     fun seal(plaintext: ByteArray): ByteArray {
-        require(plaintext.size in 1..MAX_PLAINTEXT)
+        require(plaintext.size in 1..maxPlaintext)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         // Android Keystore supplies a fresh, unpredictable IV for each encryption.
         cipher.init(Cipher.ENCRYPT_MODE, key())
@@ -21,7 +21,7 @@ internal class SessionEncryption(private val key: () -> SecretKey) {
     }
 
     fun open(envelope: ByteArray): ByteArray {
-        if (envelope.size !in (HEADER.size + IV_SIZE + TAG_SIZE + 1)..MAX_ENVELOPE ||
+        if (envelope.size !in (HEADER.size + IV_SIZE + TAG_SIZE + 1)..(maxPlaintext + 32) ||
             !envelope.copyOfRange(0, HEADER.size).contentEquals(HEADER)) {
             throw GeneralSecurityException("Invalid session envelope")
         }

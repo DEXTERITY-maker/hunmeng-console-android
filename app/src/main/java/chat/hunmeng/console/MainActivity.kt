@@ -288,7 +288,7 @@ internal fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController) {
                     }
                 }
                 OutlinedButton(onClick = { editingTemplateId = null; templateName = ""; templateDialog = true }, enabled = !sendBusy && state.messageInput.isNotBlank()) { Text(t("Сохранить шаблон", "Save template")) }
-                Text(t("Без входа в аккаунт шаблоны и избранное остаются в памяти до закрытия приложения.", "Without account sign-in, templates and favorites stay in memory until the app closes."), style = MaterialTheme.typography.bodySmall)
+                Text(if (state.toolsAccountId == null) t("Без входа в аккаунт шаблоны и избранное остаются в памяти до закрытия приложения.", "Without account sign-in, templates and favorites stay in memory until the app closes.") else t("Шаблоны и избранное сохраняются зашифрованными для этого аккаунта и удаляются при выходе.", "Templates and favorites are saved encrypted for this account and deleted on sign out."), style = MaterialTheme.typography.bodySmall)
                 state.toolsError?.let { Text(it.text(state.language), color = MaterialTheme.colorScheme.error) }
             }
             SectionCard(t("Ручная отправка", "Manual send")) {

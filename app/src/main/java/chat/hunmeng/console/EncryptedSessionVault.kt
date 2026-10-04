@@ -10,16 +10,18 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 
 /** Private, backup-excluded storage. Encryption failures never fall back to plaintext. */
-internal enum class VaultPurpose(val fileName: String, val keyAlias: String) {
+internal enum class VaultPurpose(val fileName: String, val keyAlias: String, val maxPlaintext: Int = SessionEncryption.MAX_PLAINTEXT) {
     ACCOUNT("telegram-account.session", "hunmeng.telegram.account.v1"),
     LOGIN_PENDING("telegram-login.pending", "hunmeng.telegram.login.pending.v1"),
+    ACCOUNT_TOOLS("telegram-account.tools", "hunmeng.telegram.account.tools.v1", 524_288),
     INSTRUMENTATION_TEST("telegram-account.test.session", "hunmeng.telegram.account.test.v1"),
 }
 internal class EncryptedSessionVault(context: Context, purpose: VaultPurpose = VaultPurpose.ACCOUNT) {
     private val file = AtomicFile(File(context.noBackupFilesDir, purpose.fileName))
     private val keyAlias = purpose.keyAlias
     private val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-    private val encryption = SessionEncryption(::key)
+    private val maxEnvelope = purpose.maxPlaintext + 32
+    private val encryption = SessionEncryption(::key, purpose.maxPlaintext)
 
     @Synchronized fun save(payload: ByteArray) {
         val encrypted = encryption.seal(payload)
@@ -41,8 +43,8 @@ internal class EncryptedSessionVault(context: Context, purpose: VaultPurpose = V
         val encrypted = file.openRead().use { input ->
             val output = java.io.ByteArrayOutputStream()
             val buffer = ByteArray(1024)
-            while (output.size() <= SessionEncryption.MAX_ENVELOPE) {
-                val count = input.read(buffer, 0, minOf(buffer.size, SessionEncryption.MAX_ENVELOPE + 1 - output.size()))
+            while (output.size() <= maxEnvelope) {
+                val count = input.read(buffer, 0, minOf(buffer.size, maxEnvelope + 1 - output.size()))
                 if (count < 0) break
                 output.write(buffer, 0, count)
             }

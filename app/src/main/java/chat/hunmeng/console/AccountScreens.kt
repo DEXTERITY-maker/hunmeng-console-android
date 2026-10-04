@@ -30,6 +30,7 @@ internal fun AccountAppScreen(vm: ConsoleViewModel, console: ConsoleUiState) {
     val login by vm.login.state.collectAsStateWithLifecycle()
     val phase by vm.telegramClient.phase.collectAsStateWithLifecycle()
     val qr by vm.telegramClient.qrLink.collectAsStateWithLifecycle()
+    val update by vm.updates.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val ru = console.language == UiLanguage.RU
@@ -81,6 +82,12 @@ internal fun AccountAppScreen(vm: ConsoleViewModel, console: ConsoleUiState) {
                     Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    if (state.destination == AppDestination.PROFILE) AccountCard(t("Обновления приложения", "App updates")) {
+                        Text(t("Установлено: ", "Installed: ") + DISPLAY_VERSION)
+                        OutlinedButton(onClick = vm.updates::check, enabled = update.phase !in setOf(UpdatePhase.CHECKING, UpdatePhase.DOWNLOADING)) { Text(t("Проверить обновления", "Check for updates")) }
+                        if (update.phase == UpdatePhase.CHECKING) CircularProgressIndicator()
+                        update.error?.let { Text(it.text(console.language), color = MaterialTheme.colorScheme.error) }
+                    }
                     when (session.phase) {
                         AccountPhase.SIGNED_OUT -> {
                             AccountCard(t("Войти через Telegram", "Sign in with Telegram")) {
@@ -145,6 +152,7 @@ internal fun AccountAppScreen(vm: ConsoleViewModel, console: ConsoleUiState) {
         }
     }, confirmButton = { TextButton(onClick = { settings = false }) { Text(t("Готово", "Done")) } })
     if (logout) AlertDialog(onDismissRequest = { logout = false }, title = { Text(t("Выйти из аккаунта?", "Sign out?")) }, text = { Text(t("Будут остановлены запросы и удалена зашифрованная сессия на телефоне. Приложение не удаляет сообщения в Telegram.", "Requests will stop and the encrypted session on this phone will be deleted. Telegram messages are retained.")) }, confirmButton = { TextButton(onClick = { logout = false; vm.logoutAccount() }) { Text(t("Выйти", "Sign out")) } }, dismissButton = { TextButton(onClick = { logout = false }) { Text(t("Отмена", "Cancel")) } })
+    AndroidUpdateDialogs(vm.updates, console.language)
 }
 
 @Composable
