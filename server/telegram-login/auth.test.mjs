@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, createSign, randomBytes } from 'node:crypto';
-import { TelegramLoginService, verifyTelegramIdToken, authResponse } from './auth.mjs';
+import { TelegramLoginService, verifyTelegramIdToken, authResponse, validLoginRedirectUri } from './auth.mjs';
 const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
 const jwks = { keys: [{ ...publicKey.export({ format: 'jwk' }), kid: 'test-key', alg: 'RS256', use: 'sig' }] };
 const nonce = randomBytes(32).toString('base64url');
@@ -37,7 +37,7 @@ class MemoryStore {
 }
 function service() {
   const store = new MemoryStore(); let activeState; let tokenExchanges = 0;
-  const server = new TelegramLoginService({ clientId: '123456789', clientSecret: 'TEST_SECRET_WITH_NO_ACCESS', redirectUri: 'https://app123456789-login.tg.dev/tglogin', store, clock: () => 1100,
+  const server = new TelegramLoginService({ clientId: '123456789', clientSecret: 'TEST_SECRET_WITH_NO_ACCESS', redirectUri: 'https://app987654321-login.tg.dev/tglogin', store, clock: () => 1100,
     fetcher: async (url, options) => {
       if (url.endsWith('/token')) {
         tokenExchanges++;
@@ -53,6 +53,7 @@ test('PKCE, binding, one-time consume, session validation and revocation', async
   const fixture = service(); const binding = randomBytes(32).toString('base64url');
   const start = await fixture.server.begin(binding); fixture.setAttempt(start.state);
   const url = new URL(start.authorizationUrl);
+  assert.equal(url.searchParams.get('client_id'), '123456789'); assert.equal(url.searchParams.get('redirect_uri'), 'https://app987654321-login.tg.dev/tglogin');
   assert.equal(url.searchParams.get('scope'), 'openid profile'); assert.equal(url.searchParams.get('code_challenge_method'), 'S256');
   const request = { state: start.state, binding, code: 'TEST_CODE', callbackUri: start.redirectUri };
   await assert.rejects(() => fixture.server.complete({ ...request, callbackUri: 'https://attacker.invalid' }));
@@ -80,4 +81,9 @@ test('parallel replay grants only one session', async () => {
 test('errors never disclose a raw upstream secret or response', async () => {
   const response = await authResponse(async () => { throw new Error('TEST_PRIVATE_ERROR_VALUE'); });
   assert.equal(response.status, 502); assert.deepEqual(await response.json(), { error: 'login_failed' });
+});
+
+test('native App URL is independent of client ID and has an exact trusted origin/path', () => {
+  assert.equal(validLoginRedirectUri('https://app987654321-login.tg.dev/tglogin'), true);
+  for (const value of [undefined, 'https://attacker.invalid/tglogin', 'https://app987654321-login.tg.dev:443/tglogin', 'https://user@app987654321-login.tg.dev/tglogin', 'https://app987654321-login.tg.dev/tglogin?extra=1', 'https://app987654321-login.tg.dev/tglogin#fragment', 'https://app987654321-login.tg.dev/tglogin/extra']) assert.equal(validLoginRedirectUri(value), false);
 });

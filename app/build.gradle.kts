@@ -22,10 +22,21 @@ android {
         vectorDrawables.useSupportLibrary = true
         // Public client ID only. Client Secret belongs exclusively to the server runtime.
         val loginClientId = providers.gradleProperty("telegramLoginClientId").getOrElse("0")
+        val loginAppId = providers.gradleProperty("telegramLoginAppId").getOrElse(
+            if (loginClientId == "0") "0" else {
+                require(loginClientId == providers.gradleProperty("telegramLoginRegisteredClientId").orNull) {
+                    "Provide telegramLoginAppId for a different OIDC Client ID"
+                }
+                providers.gradleProperty("telegramLoginRegisteredAppId").get()
+            }
+        )
         require(loginClientId == "0" || Regex("[1-9][0-9]{4,15}").matches(loginClientId))
+        require(loginAppId == "0" || Regex("[1-9][0-9]{4,15}").matches(loginAppId))
+        require((loginClientId == "0") == (loginAppId == "0")) { "Provide both the OIDC Client ID and native App URL ID" }
         buildConfigField("String", "TELEGRAM_LOGIN_CLIENT_ID", "\"$loginClientId\"")
+        buildConfigField("String", "TELEGRAM_LOGIN_REDIRECT_URI", "\"https://app$loginAppId-login.tg.dev/tglogin\"")
         buildConfigField("String", "LOGIN_BACKEND_URL", "\"https://telegram-bot-console.hunmeng.chatgpt.site/\"")
-        manifestPlaceholders["telegramLoginHost"] = "app$loginClientId-login.tg.dev"
+        manifestPlaceholders["telegramLoginHost"] = "app$loginAppId-login.tg.dev"
     }
 
     buildTypes {

@@ -97,13 +97,13 @@ class PreparationTests(unittest.TestCase):
             source.write_bytes(b"synthetic APK")
             output = directory / "candidate"
             args = Namespace(apk=source, output_dir=output, source_commit="a" * 40, ci_run_id="123",
-                             client_id="0", signing_dir=directory / "signing", version_code=2, version_name="0.0.4-beta")
+                             client_id="12345", app_id="54321", signing_dir=directory / "signing", version_code=2, version_name="0.0.4-beta")
             signing = {"release.jks": directory / "fake.jks", "store-password": directory / "fake-password"}
 
             def tool(arguments, **options):
                 text = ""
                 if arguments[0] == "aapt2":
-                    text = badging() if arguments[2] == "badging" else 'A: android:host(0x1)="app0-login.tg.dev"'
+                    text = badging() if arguments[2] == "badging" else 'A: android:host(0x1)="app54321-login.tg.dev"'
                 if arguments[0] == "apksigner" and "--print-certs" in arguments:
                     text = f"Number of signers: 1\nSigner #1 certificate SHA-256 digest: {release.CERTIFICATE_SHA256}\n"
                 if arguments[0] == "apksigner" and "--out" in arguments:
@@ -118,7 +118,9 @@ class PreparationTests(unittest.TestCase):
                 record = release.prepare(args)
                 self.assertFalse(record["published"])
                 self.assertFalse(record["installed_on_device"])
-                self.assertEqual(record["login_configuration"], "not_configured")
+                self.assertEqual(record["login_configuration"], "requires_live_verification")
+                self.assertEqual(record["telegram_login_client_id"], "12345")
+                self.assertEqual(record["telegram_login_app_id"], "54321")
                 self.assertTrue((output / "candidate.json").is_file())
                 self.assertEqual(release.digest(output / record["filename"]), record["apk_sha256"])
                 with self.assertRaises(release.PreparationError):
@@ -128,7 +130,7 @@ class PreparationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as working:
             directory = Path(working)
             args = Namespace(apk=directory / "input.apk", output_dir=directory / "candidate", source_commit="a" * 40,
-                             ci_run_id="123", client_id="0", signing_dir=directory / "signing", version_code=2, version_name="0.0.4-beta")
+                             ci_run_id="123", client_id="0", app_id="0", signing_dir=directory / "signing", version_code=2, version_name="0.0.4-beta")
             with patch.object(release, "run_tool", side_effect=[subprocess.CompletedProcess([], 0, badging()),
                     subprocess.CompletedProcess([], 0, 'A: android:host(0x1)="app99999-login.tg.dev"')]):
                 with self.assertRaises(release.PreparationError):
@@ -141,7 +143,7 @@ class PreparationTests(unittest.TestCase):
             source = directory / "input.apk"
             source.write_bytes(b"synthetic unsigned APK")
             args = Namespace(apk=source, output_dir=directory / "candidate", source_commit="a" * 40,
-                             ci_run_id="123", client_id="0", signing_dir=directory / "signing", version_code=2, version_name="0.0.4-beta")
+                             ci_run_id="123", client_id="0", app_id="0", signing_dir=directory / "signing", version_code=2, version_name="0.0.4-beta")
             results = [subprocess.CompletedProcess([], 0, badging()),
                        subprocess.CompletedProcess([], 0, 'A: android:host(0x1)="app0-login.tg.dev"'),
                        subprocess.CompletedProcess([], 1, ""), release.PreparationError("Synthetic alignment failure")]

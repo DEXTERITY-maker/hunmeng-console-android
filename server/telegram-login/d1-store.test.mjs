@@ -60,7 +60,7 @@ test('unconfigured public endpoints disclose no runtime secret or success profil
 test('configured endpoints reject foreign browser origins and oversized input', async () => {
   const { db, adapter, dataKey } = fixture();
   try {
-    const env = { DB: adapter, TELEGRAM_LOGIN_CLIENT_ID: '123456789', TELEGRAM_LOGIN_CLIENT_SECRET: 'TEST_SECRET_NO_ACCESS', TELEGRAM_LOGIN_DATA_KEY: dataKey };
+    const env = { DB: adapter, TELEGRAM_LOGIN_CLIENT_ID: '123456789', TELEGRAM_LOGIN_REDIRECT_URI: 'https://app987654321-login.tg.dev/tglogin', TELEGRAM_LOGIN_CLIENT_SECRET: 'TEST_SECRET_NO_ACCESS', TELEGRAM_LOGIN_DATA_KEY: dataKey };
     const foreign = await handleTelegramLogin(new Request('https://example.invalid/api/account/login/begin', { method: 'POST', headers: { origin: 'https://attacker.invalid', 'content-type': 'application/json' }, body: '{}' }), env);
     assert.equal(foreign.status, 403);
     const oversized = await handleTelegramLogin(new Request('https://example.invalid/api/account/login/begin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: 'a'.repeat(10_241) }), env);
@@ -76,5 +76,17 @@ test('D1 rate limits are atomic, expire and retain no raw client address', async
     await assert.rejects(() => limitLoginRequest(request, env, 'begin', 1000), error => error.status === 429);
     assert.equal(JSON.stringify(db.prepare('SELECT * FROM telegram_login_rate_limits').all()).includes('192.0.2.7'), false);
     await limitLoginRequest(request, env, 'begin', 1500);
+  } finally { db.close(); }
+});
+
+test('public configuration retains distinct OIDC client ID and native redirect', async () => {
+  const { db, adapter, dataKey } = fixture();
+  try {
+    const env = { DB: adapter, TELEGRAM_LOGIN_CLIENT_ID: '123456789', TELEGRAM_LOGIN_REDIRECT_URI: 'https://app987654321-login.tg.dev/tglogin', TELEGRAM_LOGIN_CLIENT_SECRET: 'TEST_SECRET_NO_ACCESS', TELEGRAM_LOGIN_DATA_KEY: dataKey };
+    const response = await handleTelegramLogin(new Request('https://example.invalid/api/account/login/config'), env);
+    assert.deepEqual(await response.json(), { configured: true, clientId: '123456789', redirectUri: env.TELEGRAM_LOGIN_REDIRECT_URI });
+    delete env.TELEGRAM_LOGIN_REDIRECT_URI;
+    const missing = await handleTelegramLogin(new Request('https://example.invalid/api/account/login/config'), env);
+    assert.deepEqual(await missing.json(), { configured: false });
   } finally { db.close(); }
 });

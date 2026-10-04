@@ -5,6 +5,10 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder('utf-8', { fatal: true });
 const safeToken = /^[A-Za-z0-9_-]{43}$/;
 const authHeaders = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
+// BotFather's generated native App URL is independent of the OIDC Client ID.
+export function validLoginRedirectUri(value) {
+  return typeof value === 'string' && value === value.trim() && /^https:\/\/app[1-9][0-9]{4,15}-login\.tg\.dev\/tglogin$/.test(value);
+}
 export class AuthError extends Error {
   constructor(code = 'invalid_login', status = 400) { super(code); this.code = code; this.status = status; }
 }
@@ -55,7 +59,7 @@ export class TelegramLoginService {
     this.config = { clientId: String(clientId), clientSecret, redirectUri };
     this.store = store; this.fetcher = fetcher; this.clock = clock;
     reject(/^[1-9][0-9]{4,15}$/.test(this.config.clientId) && typeof clientSecret === 'string' && clientSecret.length >= 16, 'login_not_configured', 503);
-    reject(redirectUri === `https://app${this.config.clientId}-login.tg.dev/tglogin`, 'login_not_configured', 503);
+    reject(validLoginRedirectUri(redirectUri), 'login_not_configured', 503);
   }
   async begin(binding) {
     reject(safeToken.test(binding));

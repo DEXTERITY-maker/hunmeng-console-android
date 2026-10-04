@@ -36,6 +36,7 @@ internal interface LoginGateway : AccountSessionVerifier {
 internal class TelegramLoginGateway(
     backend: String = BuildConfig.LOGIN_BACKEND_URL,
     private val publicClientId: String = BuildConfig.TELEGRAM_LOGIN_CLIENT_ID,
+    private val expectedRedirectUri: String = BuildConfig.TELEGRAM_LOGIN_REDIRECT_URI,
     private val http: OkHttpClient = OkHttpClient.Builder().followRedirects(false).followSslRedirects(false)
         .retryOnConnectionFailure(false).callTimeout(20, TimeUnit.SECONDS).build(),
 ) : LoginGateway {
@@ -80,7 +81,7 @@ internal class TelegramLoginGateway(
         if (json.opt("configured") == false) return LoginConfiguration(false)
         val id = json.getString("clientId")
         val redirect = json.getString("redirectUri")
-        require(id == publicClientId && Regex("[1-9][0-9]{4,15}").matches(id) && redirect == "https://app$id-login.tg.dev/tglogin")
+        require(id == publicClientId && Regex("[1-9][0-9]{4,15}").matches(id) && redirect == expectedRedirectUri && validLoginRedirectUri(redirect))
         return LoginConfiguration(true, id, redirect)
     }
     override suspend fun begin(binding: String): LoginAttempt {
@@ -88,7 +89,7 @@ internal class TelegramLoginGateway(
         if (!config.configured) throw LoginFailure("login_not_configured")
         val json = call("begin", JSONObject().put("binding", binding))
         return LoginAttempt(json.getString("state"), binding, json.getString("authorizationUrl"), json.getString("redirectUri"), json.getLong("expiresAt"))
-            .also { validateLoginAttempt(it, checkNotNull(config.clientId)) }
+            .also { validateLoginAttempt(it, checkNotNull(config.clientId), expectedRedirectUri) }
     }
     override suspend fun complete(attempt: LoginAttempt, code: String): LoginResult {
         val json = call("complete", JSONObject().put("state", attempt.state).put("binding", attempt.binding).put("code", code).put("callbackUri", attempt.redirectUri))
@@ -112,9 +113,11 @@ internal fun loginQuery(value: String): Map<String, String> {
     require(pairs.map { it.first }.distinct().size == pairs.size)
     return pairs.toMap()
 }
-internal fun validateLoginAttempt(attempt: LoginAttempt, clientId: String) {
+internal fun validLoginRedirectUri(value: String) = Regex("https://app[1-9][0-9]{4,15}-login\\.tg\\.dev/tglogin").matches(value)
+internal fun validateLoginAttempt(attempt: LoginAttempt, clientId: String, expectedRedirectUri: String) {
+    require(Regex("[1-9][0-9]{4,15}").matches(clientId))
     require(Regex("[A-Za-z0-9_-]{43}").matches(attempt.state) && Regex("[A-Za-z0-9_-]{43}").matches(attempt.binding))
-    require(attempt.redirectUri == "https://app$clientId-login.tg.dev/tglogin")
+    require(validLoginRedirectUri(expectedRedirectUri) && attempt.redirectUri == expectedRedirectUri)
     val uri = URI(attempt.authorizationUrl)
     require(uri.scheme == "https" && uri.host == "oauth.telegram.org" && uri.port == -1 && uri.userInfo == null && uri.rawPath == "/auth" && uri.fragment == null)
     val query = loginQuery(attempt.authorizationUrl)

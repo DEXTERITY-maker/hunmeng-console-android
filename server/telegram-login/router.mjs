@@ -1,4 +1,4 @@
-import { AuthError, authResponse, TelegramLoginService } from './auth.mjs';
+import { AuthError, authResponse, TelegramLoginService, validLoginRedirectUri } from './auth.mjs';
 import { D1LoginStore } from './d1-store.mjs';
 import { limitLoginRequest } from './rate-limit.mjs';
 
@@ -7,9 +7,10 @@ const securityHeaders = { 'Cache-Control': 'no-store', 'X-Content-Type-Options':
 export async function handleTelegramLogin(request, env) {
   const url = new URL(request.url);
   const action = url.pathname.split('/').at(-1);
-  const configured = Boolean(/^[1-9][0-9]{4,15}$/.test(String(env.TELEGRAM_LOGIN_CLIENT_ID ?? '')) && typeof env.TELEGRAM_LOGIN_CLIENT_SECRET === 'string' && env.TELEGRAM_LOGIN_CLIENT_SECRET.length >= 16 && /^[A-Za-z0-9_-]{43}$/.test(env.TELEGRAM_LOGIN_DATA_KEY ?? '') && env.DB);
+  const redirectUri = env.TELEGRAM_LOGIN_REDIRECT_URI;
+  const configured = Boolean(/^[1-9][0-9]{4,15}$/.test(String(env.TELEGRAM_LOGIN_CLIENT_ID ?? '')) && validLoginRedirectUri(redirectUri) && typeof env.TELEGRAM_LOGIN_CLIENT_SECRET === 'string' && env.TELEGRAM_LOGIN_CLIENT_SECRET.length >= 16 && /^[A-Za-z0-9_-]{43}$/.test(env.TELEGRAM_LOGIN_DATA_KEY ?? '') && env.DB);
   if (action === 'config' && request.method === 'GET') {
-    return Response.json(configured ? { configured: true, clientId: String(env.TELEGRAM_LOGIN_CLIENT_ID), redirectUri: `https://app${env.TELEGRAM_LOGIN_CLIENT_ID}-login.tg.dev/tglogin` } : { configured: false }, { headers: securityHeaders });
+    return Response.json(configured ? { configured: true, clientId: String(env.TELEGRAM_LOGIN_CLIENT_ID), redirectUri } : { configured: false }, { headers: securityHeaders });
   }
   return authResponse(async () => {
     if (!configured) throw new AuthError('login_not_configured', 503);
@@ -27,7 +28,7 @@ export async function handleTelegramLogin(request, env) {
     let body; try { body = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)); } catch { throw new AuthError(); }
     if (!body || typeof body !== 'object' || Array.isArray(body)) throw new AuthError();
     const store = new D1LoginStore(env.DB, env.TELEGRAM_LOGIN_DATA_KEY);
-    const service = new TelegramLoginService({ clientId: env.TELEGRAM_LOGIN_CLIENT_ID, clientSecret: env.TELEGRAM_LOGIN_CLIENT_SECRET, redirectUri: `https://app${env.TELEGRAM_LOGIN_CLIENT_ID}-login.tg.dev/tglogin`, store });
+    const service = new TelegramLoginService({ clientId: env.TELEGRAM_LOGIN_CLIENT_ID, clientSecret: env.TELEGRAM_LOGIN_CLIENT_SECRET, redirectUri, store });
     if (action === 'begin') return service.begin(body.binding);
     if (action === 'complete') return service.complete(body);
     if (action === 'cancel') { await service.cancel(body); return { cancelled: true }; }

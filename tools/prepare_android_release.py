@@ -121,13 +121,15 @@ def prepare(args):
     require(re.fullmatch(r"[a-f0-9]{40}", args.source_commit), "Full source commit required")
     require(re.fullmatch(r"[0-9]+", args.ci_run_id), "CI run ID required")
     require(args.client_id == "0" or re.fullmatch(r"[1-9][0-9]{4,15}", args.client_id), "Invalid public Client ID")
+    require(args.app_id == "0" or re.fullmatch(r"[1-9][0-9]{4,15}", args.app_id), "Invalid public native App URL ID")
+    require((args.client_id == "0") == (args.app_id == "0"), "Both Login identifiers are required")
     source = args.apk.resolve()
     metadata = parse_badging(run_tool(["aapt2", "dump", "badging", str(source)]).stdout)
     require(metadata["version_code"] == args.version_code and metadata["version_name"] == args.version_name,
             "APK version differs from expected version")
     manifest = run_tool(["aapt2", "dump", "xmltree", str(source), "--file", "AndroidManifest.xml"]).stdout
     hosts = re.findall(r'android:host[^\n]*="([^"\n]+)"', manifest)
-    require(hosts == [f"app{args.client_id}-login.tg.dev"], "APK Login host differs from public Client ID")
+    require(hosts == [f"app{args.app_id}-login.tg.dev"], "APK Login host differs from registered native App URL")
     libraries = inspect_archive(source)
     require(run_tool(["apksigner", "verify", str(source)], allow_failure=True).returncode != 0, "Unsigned release input required")
     signing = private_signing_files(args.signing_dir)
@@ -154,6 +156,8 @@ def prepare(args):
                       "ci_run_id": args.ci_run_id, "filename": filename, "size_bytes": signed.stat().st_size,
                       "apk_sha256": digest(signed), "certificate_sha256": CERTIFICATE_SHA256,
                       "telegram_login_client_id": args.client_id,
+                      "telegram_login_app_id": args.app_id,
+                      "telegram_login_redirect_uri": f"https://app{args.app_id}-login.tg.dev/tglogin",
                       "login_configuration": "not_configured" if args.client_id == "0" else "requires_live_verification",
                       "native_sha256": libraries, "published": False, "installed_on_device": False}
             signed.replace(output / filename)
@@ -174,6 +178,7 @@ def main():
     parser.add_argument("--version-name", required=True)
     parser.add_argument("--version-code", required=True, type=int)
     parser.add_argument("--client-id", default="0", help="Public BotFather Client ID only")
+    parser.add_argument("--app-id", default="0", help="Public numeric ID from BotFather native App URL")
     parser.add_argument("--signing-dir", type=Path, default=Path.home() / ".config/hunmeng-console/signing")
     try:
         record = prepare(parser.parse_args())

@@ -35,6 +35,7 @@ internal class LoginFlow(
     private val gateway: LoginGateway, private val store: PendingLoginStore,
     private val accept: suspend (AccountSessionRecord) -> Unit,
     private val clientId: String = BuildConfig.TELEGRAM_LOGIN_CLIENT_ID,
+    private val redirectUri: String = BuildConfig.TELEGRAM_LOGIN_REDIRECT_URI,
     private val now: () -> Long = { System.currentTimeMillis() / 1000 },
 ) {
     private val mutex = Mutex()
@@ -46,7 +47,7 @@ internal class LoginFlow(
     suspend fun restore() = mutex.withLock {
         try {
             val saved = store.load() ?: return@withLock
-            validateLoginAttempt(saved, clientId)
+            validateLoginAttempt(saved, clientId, redirectUri)
             if (saved.expiresAt <= now()) { store.erase(); return@withLock }
             attempt = saved; _state.value = LoginUiState(LoginPhase.WAITING)
         } catch (cancelled: CancellationException) { throw cancelled }
@@ -62,7 +63,7 @@ internal class LoginFlow(
         try {
             val binding = Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32).also { SecureRandom().nextBytes(it) })
             fresh = gateway.begin(binding)
-            validateLoginAttempt(fresh, clientId)
+            validateLoginAttempt(fresh, clientId, redirectUri)
             require(fresh.expiresAt in (now() + 1)..(now() + 360))
             if (lease != generation.get()) return@withLock null
             store.save(fresh); attempt = fresh; retained = true
@@ -78,7 +79,7 @@ internal class LoginFlow(
         }
     }
     suspend fun callback(uri: String) = mutex.withLock {
-        val pending = attempt ?: store.load()?.also { validateLoginAttempt(it, clientId) } ?: return@withLock
+        val pending = attempt ?: store.load()?.also { validateLoginAttempt(it, clientId, redirectUri) } ?: return@withLock
         val code = try { loginCallbackCode(uri, pending) } catch (_: Exception) { return@withLock }
         if (pending.expiresAt <= now()) { attempt = null; store.erase(); _state.value = LoginUiState(LoginPhase.ERROR, "login_expired"); return@withLock }
         // Erase before exchanging, so duplicate Intents and crashes cannot reuse this callback.
