@@ -29,7 +29,7 @@ internal class TelegramApiApplication(val apiId: Int, val apiHash: String) {
 internal class AccountSessionRecord(val accountId: Long, val serverSession: String, val databaseKey: ByteArray, val apiApplication: TelegramApiApplication? = null) {
     init {
         require(accountId in 1..9_007_199_254_740_991L)
-        require(serverSession.length in 32..4096 && !containsCredential(serverSession))
+        require(Regex("[A-Za-z0-9_-]{43}").matches(serverSession))
         require(databaseKey.size == 32)
     }
     override fun toString() = "AccountSessionRecord([redacted])"

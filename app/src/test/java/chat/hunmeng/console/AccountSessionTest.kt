@@ -33,7 +33,7 @@ class AccountSessionTest {
         override suspend fun revokeCloseAndErase(): ClientSessionCleanup { cleaned = true; return cleanup }
         override suspend fun closeWithoutErasing() = true
     }
-    private fun record() = AccountSessionRecord(7L, "TEST_OPAQUE_ACCOUNT_SESSION_".repeat(3), ByteArray(32) { 9 })
+    private fun record() = AccountSessionRecord(7L, "TEST_OPAQUE_ACCOUNT_SESSION_".padEnd(43, '_'), ByteArray(32) { 9 })
 
     @Test fun persistsOnlyAfterBothIdentitiesAreVerifiedThenErasesOnLogout() = runTest {
         val store = Store(); val verifier = Verifier(); val client = Client()
