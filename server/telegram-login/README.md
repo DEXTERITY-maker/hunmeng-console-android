@@ -1,10 +1,10 @@
 # Серверная проверка Telegram Login
 
-Модуль подготовлен и тестируется локально на Node.js 26. Это ещё не развёрнутый Login backend. Действующий Sites-проект публичный; его исходники `c5c6b4be275834d0c92c2765750e311fa5cfbd3d` изучены: есть Bot API proxy и browser version endpoint, Telegram Login endpoints и D1 отсутствуют.
+Модуль развёрнут на существующем публичном Sites backend (версия 9, source `e1db6a5a7e468bcdcfda89b1a130b501b26a0f87`). Ранее опубликованная версия 8 уже имела собственные browser sessions/D1: они сохранены. Android-маршруты и таблицы добавлены отдельно. Реальный Telegram Login пока не настроен: публичный `/api/account/login/config` возвращает HTTP 200 и `configured: false`.
 
-## Подключение к существующему backend
+## Развёрнутая архитектура
 
-- Подключить D1 binding `DB` в существующем `.openai/hosting.json`; применить `schema.sql` как миграцию.
+- Используется существующий D1 binding `DB` в `.openai/hosting.json`. Три Android-таблицы добавлены отдельной Drizzle-миграцией; существующие browser-таблицы сохранены. `schema.sql` описывает схему этих новых таблиц.
 - Маршрут `/api/account/login/[action]` вызывает `handleTelegramLogin(request, env)` из `router.mjs`.
 - `GET config` раскрывает только доступность, публичный client ID и точный redirect URI. `POST begin/complete/cancel/verify/logout` используют JSON; разрешён собственный browser origin либо native запрос без Origin. Отдельные browser CORS разрешения не выдаются.
 - Одноразовые попытки расходуются одним `DELETE ... RETURNING`: binding, срок и запрет повторного обмена сохраняются между серверными экземплярами. В D1 хранятся SHA-256 opaque session и зашифрованные AES-GCM payload. PKCE verifier, nonce и профиль не пишутся открытым JSON в базу.
@@ -21,6 +21,6 @@ Runtime values задаются как секреты в Sites: `TELEGRAM_LOGIN_
 
 ## Проверки
 
-`node --test server/telegram-login/*.test.mjs` — 19 тестов пройдены. Они используют собственную RSA-пару, SQLite в памяти, синтетические данные и mock fetch; реальной авторизации и Telegram-запросов нет. Native source/JNI, Android Keystore и UI проверяются отдельно. Старт публичного сервиса также требует лимитов запросов и проверки миграции/конфигурации в реальном Worker.
+`node --test server/telegram-login/*.test.mjs` — 20 тестов пройдены. Они используют собственную RSA-пару, SQLite в памяти, синтетические данные и mock fetch; реальной авторизации и Telegram-запросов нет. Native source/JNI, Android Keystore и UI проверяются отдельно. Добавлены атомарные D1 лимиты запросов; миграция применена, таблицы подтверждены. Runtime-ключ шифрования хранится как secret; Client ID/Secret приложения ещё требуют настройки владельца. Реальный обмен/авторизация не проверялись.
 
 Официальная документация: [Telegram Login](https://core.telegram.org/bots/telegram-login), [Android SDK](https://github.com/TelegramMessenger/telegram-login-android).

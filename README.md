@@ -1,6 +1,12 @@
 # Hunmeng Console для Android
 
-Нативное приложение Kotlin/Jetpack Compose с функциями [исходной веб-консоли](https://telegram-bot-console.hunmeng.chatgpt.site) **v0.0.4beta**. Идентификатор: `chat.hunmeng.console`; Android `versionName`: `0.0.4-beta`, `versionCode`: `2`; Android 8.0+ (API 26).
+Нативное приложение Kotlin/Jetpack Compose. Последний публичный Android-выпуск переносит функции [исходной веб-консоли](https://telegram-bot-console.hunmeng.chatgpt.site) v0.0.4beta. Идентификатор: `chat.hunmeng.console`; Android `versionName`: `0.0.4-beta`, `versionCode`: `2`; Android 8.0+ (API 26). Текущая версия сайта развивается отдельно от APK.
+
+## Разработка v0.0.5beta
+
+Ветка `codex/v005-account-session`, [draft PR #1](https://github.com/DEXTERITY-maker/hunmeng-console-android/pull/1). Добавлены аккаунтная навигация, серверная проверка входа, отдельное подключение TDLib, зашифрованная сессия/инструменты, темы и Android-обновления. Финальный CI: 93 теста, 0 failures; lint 0 ошибок; native runtime и эмуляторные проверки успешны.
+
+**Это ещё не новый публичный APK.** Telegram Login требует Client ID/Secret и регистрации приложения в BotFather; сервер опубликован, но `/config` возвращает `configured: false`. Настоящий вход, данные аккаунта и установка на телефоне не проверены. [Подробный статус](reports/v0.0.5-implementation.md) и [настройка сервера](server/telegram-login/README.md).
 
 ## Скачать APK
 
@@ -10,7 +16,7 @@
 
 Для скачивания вход в GitHub не нужен. Это сборка с новой иконкой и пятью функциями из NEXT-UPDATE.md. Версия сохранена: 0.0.4-beta, код 2. Подпись отличается от прежних APK v0.0.3beta и v0.0.4beta с иконкой: установка поверх них не поддерживается. Старый выпуск сохранён отдельно.
 
-## Возможности
+## Возможности публичного v0.0.4beta
 
 - Пошаговая диагностика: консоль, Telegram, авторизация и webhook; повтор без ввода токена. Сетевая ошибка не объявляет токен неверным, а ошибка webhook после getMe сохраняет проверенную авторизацию.
 - Безопасный JSON-отчёт по разрешённому списку полей, копирование и ручной вариант при сбое clipboard.

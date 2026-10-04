@@ -2,6 +2,14 @@
 
 Дата проверки: 04.10.2026 00:46 МСК.
 
+## Проверка разрабатываемой v0.0.5beta
+
+Ниже сохранён отчёт последнего публичного v0.0.4beta. В ветке разработки [CI 37171249282](https://github.com/DEXTERITY-maker/hunmeng-console-android/actions/runs/37171249282), source `8fe2302`, подтвердил 93 unit-теста без ошибок/пропусков, lint 0 ошибок / 33 предупреждения, обе библиотеки TDLib в APK и успешные UI/Keystore/JNI проверки на Android 15 x86_64 (обычный шрифт и 1.6).
+
+Это debug artifact с метаданными 0.0.4-beta / код 2, не выпуск v0.0.5beta. Настройка и настоящий Telegram Login, постоянная подпись выпуска и установка на телефоне ещё требуются. [Текущий отчёт](reports/v0.0.5-implementation.md).
+
+APK из финального CI: 64 262 261 байт; SHA-256 `f043f69b39f06cf79a6fdbe3d07110257c6e7d9d3efeaef25391236fe6bd7a61`. ZIP/CRC, подпись v2 и AAPT-метаданные проверены локально. Лицензии и обе библиотеки TDLib в пакете совпадают с проверенными исходными artifacts. Полные сведения — в текущем отчёте выше.
+
 ## APK для скачивания
 
 - [Скачать APK с пятью перенесёнными функциями](https://github.com/DEXTERITY-maker/hunmeng-console-android/releases/download/v0.0.4-beta-sync/Hunmeng-Console-0.0.4-beta-sync.apk).
