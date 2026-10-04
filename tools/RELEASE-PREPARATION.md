@@ -15,8 +15,8 @@ Workflow `android.yml` проверяет сервер на Node.js 26, нати
 Пример для проверяемой сборки с сохранёнными текущими метаданными:
 
 ```sh
-gh run download 37172566676 --repo DEXTERITY-maker/hunmeng-console-android --name hunmeng-console-unsigned-release --dir .cache/unsigned-release-37172566676
-python tools/prepare_android_release.py .cache/unsigned-release-37172566676/app/build/outputs/apk/release/app-release-unsigned.apk --output-dir .cache/signed-candidate-37172566676 --source-commit 8a5fb3971e4aa15990907a186eb8833b74862c9f --ci-run-id 37172566676 --version-name 0.0.4-beta --version-code 2 --client-id 0
+gh run download 37174913542 --repo DEXTERITY-maker/hunmeng-console-android --name hunmeng-console-unsigned-release --dir .cache/unsigned-release-37174913542
+python tools/prepare_android_release.py .cache/unsigned-release-37174913542/app/build/outputs/apk/release/app-release-unsigned.apk --output-dir .cache/signed-candidate-37174913542 --source-commit bd8719f3d5e362130ff271c72ed09caa5b4adbba --ci-run-id 37174913542 --version-name 0.0.4-beta --version-code 2 --client-id 8883240190
 ```
 
 Для следующей сборки брать run ID и полный commit SHA из её GitHub Actions, ожидаемую версию — из согласованных метаданных, Client ID — из публичной конфигурации. Номер версии этот инструмент не меняет. Существующий output-каталог не перезаписывает.

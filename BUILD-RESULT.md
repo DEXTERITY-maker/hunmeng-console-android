@@ -6,11 +6,17 @@
 
 Ниже сохранён отчёт последнего публичного v0.0.4beta. В ветке разработки [CI 37171249282](https://github.com/DEXTERITY-maker/hunmeng-console-android/actions/runs/37171249282), source `8fe2302`, подтвердил 93 unit-теста без ошибок/пропусков, lint 0 ошибок / 33 предупреждения, обе библиотеки TDLib в APK и успешные UI/Keystore/JNI проверки на Android 15 x86_64 (обычный шрифт и 1.6).
 
-Это debug artifact с метаданными 0.0.4-beta / код 2, не выпуск v0.0.5beta. Настройка и настоящий Telegram Login, постоянная подпись выпуска и установка на телефоне ещё требуются. [Текущий отчёт](reports/v0.0.5-implementation.md).
+Это исторический debug artifact с метаданными 0.0.4-beta / код 2, не выпуск v0.0.5beta. Настоящий Telegram Login и установка на телефоне ещё требуют проверки. [Текущий отчёт](reports/v0.0.5-implementation.md).
 
 APK из финального CI: 64 262 261 байт; SHA-256 `f043f69b39f06cf79a6fdbe3d07110257c6e7d9d3efeaef25391236fe6bd7a61`. ZIP/CRC, подпись v2 и AAPT-метаданные проверены локально. Лицензии и обе библиотеки TDLib в пакете совпадают с проверенными исходными artifacts. Полные сведения — в текущем отчёте выше.
 
-Следующий CI 37172566676 также подтвердил 93 Android / 20 серверных тестов, debug/release lint без ошибок и unsigned release APK. Локально получен non-debug APK с постоянной подписью: 60 189 736 байт, SHA-256 `93e3ad023f55ddcf5fd7e3e07650069b64c20491b6e19639eff51fe8018c4fc1`. [Отчёт кандидата](reports/v0.0.5-release-candidate.md). Он не опубликован и не установлен; настоящий Login ещё требует конфигурации.
+Следующий CI 37172566676 также подтвердил 93 Android / 20 серверных тестов, debug/release lint без ошибок и unsigned release APK. Локально получен первый non-debug APK с постоянной подписью и Client ID `0`: 60 189 736 байт, SHA-256 `93e3ad023f55ddcf5fd7e3e07650069b64c20491b6e19639eff51fe8018c4fc1`. Это сохранённый исторический кандидат.
+
+4 октября 2026 года, 06:51 МСК: [CI 37174913542](https://github.com/DEXTERITY-maker/hunmeng-console-android/actions/runs/37174913542), source `bd8719f3d5e362130ff271c72ed09caa5b4adbba`, успешно собрал APK с публичным Client ID `8883240190`. 93 unit-теста / 0 failures / 0 ignored, 20 серверных и 10 packaging-тестов пройдены; debug/release lint каждый: 0 ошибок / 33 предупреждения. Все пять jobs успешны. UI job отдельно выполнила три instrumentation-теста дважды на Android 15 x86_64, с обычным шрифтом и 1.6, но её APK использовал Client ID `0`; это не проверка настоящего Login.
+
+Новый локально подписанный APK: `.cache/signed-candidate-37174913542/Hunmeng-Console-0.0.4-beta-candidate.apk`, 60 189 736 байт, SHA-256 `03577e926291af9c9817a54b8a353540406414e2294f654b18ebb4f63f059825`. Подтверждены постоянный сертификат, apksigner v2/v3, package/version, точный manifest host `app8883240190-login.tg.dev`, ZIP/ELF alignment 16 KB и неизменные native SHA-256. [Отчёт кандидата](reports/v0.0.5-release-candidate.md). APK не опубликован и не установлен.
+
+Сервер применил runtime revision 3: config HTTP 200 / true, begin HTTP 200 с PKCE S256 и только openid/profile, cancel HTTP 200 / true. Telegram Android assetlinks HTTP 404; регистрация приложения и реальный callback не подтверждены. Правильность Client Secret ещё не проверена настоящим обменом кода. Авторизованных ADB-устройств нет.
 
 ## APK для скачивания
 
