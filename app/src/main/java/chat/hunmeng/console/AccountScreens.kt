@@ -91,7 +91,7 @@ internal fun AccountAppScreen(vm: ConsoleViewModel, console: ConsoleUiState) {
                     when (session.phase) {
                         AccountPhase.SIGNED_OUT -> {
                             AccountCard(t("Войти через Telegram", "Sign in with Telegram")) {
-                                Text(t("Подтвердите вход на официальной странице Telegram. Телефон и разрешение писать вам не запрашиваются.", "Confirm sign in on Telegram's official page. We do not request your phone number or permission to message you."))
+                                Text(t("Подтвердите вход на официальной странице Telegram. Мы получаем только имя, username и ID аккаунта.", "Confirm sign in on Telegram's official page. We receive only your name, username and account ID."))
                                 Text(t("После входа откроется раздел „Мои боты“.", "After sign in, the My bots section will open."))
                                 Button(onClick = {
                                     loginLaunchFailed = false
@@ -219,7 +219,7 @@ private fun BotInventoryScreen(controller: AccountController, state: AccountUiSt
                     val role = when (item.botRole) { "chatMemberStatusCreator" -> t("владелец", "owner"); "chatMemberStatusAdministrator" -> t("администратор", "administrator"); "chatMemberStatusRestricted" -> t("ограничен", "restricted"); else -> t("участник", "member") }
                     Text(t("Роль бота: ", "Bot role: ") + role, style = MaterialTheme.typography.bodySmall)
                     fun right(value: Boolean?) = when (value) { true -> t("да", "yes"); false -> t("нет", "no"); null -> t("не установлено", "unknown") }
-                    Text(t("Публикация: ${right(item.canPost)}; редактирование: ${right(item.canEdit)}; удаление: ${right(item.canDelete)}", "Post: ${right(item.canPost)}; edit: ${right(item.canEdit)}; delete: ${right(item.canDelete)}"), style = MaterialTheme.typography.bodySmall)
+                    Text(t("Публикация текста: ${right(item.canPost)}; редактирование чужих сообщений: ${right(item.canEdit)}; удаление чужих сообщений: ${right(item.canDelete)}", "Post text: ${right(item.canPost)}; edit others' messages: ${right(item.canEdit)}; delete others' messages: ${right(item.canDelete)}"), style = MaterialTheme.typography.bodySmall)
                     HorizontalDivider()
                 }
             }

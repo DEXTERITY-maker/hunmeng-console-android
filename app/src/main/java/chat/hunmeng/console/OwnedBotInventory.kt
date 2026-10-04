@@ -74,10 +74,20 @@ internal class TdLibInventorySource(private val client: TdLibClient, private val
             val role = status.optString("@type")
             if (role in setOf("chatMemberStatusLeft", "chatMemberStatusBanned")) continue
             if (role == "chatMemberStatusRestricted" && status.opt("is_member") == false) continue
+            if (role == "chatMemberStatusCreator" && status.opt("is_member") == false) continue
             if (role !in setOf("chatMemberStatusCreator", "chatMemberStatusAdministrator", "chatMemberStatusMember", "chatMemberStatusRestricted")) { noAccess++; continue }
             val rights = status.optJSONObject("rights")
             fun flag(name: String): Boolean? = if (role == "chatMemberStatusCreator") true else rights?.opt(name) as? Boolean
-            result.add(BotChat(ChatPreview(chatId, chat.getString("title"), if (channel) "channel" else if (type.optString("@type") == "chatTypeBasicGroup") "group" else "supergroup", null), role, flag("can_post_messages"), flag("can_edit_messages"), flag("can_delete_messages")))
+            val administrator = role in setOf("chatMemberStatusCreator", "chatMemberStatusAdministrator")
+            val canPost = if (channel) { if (administrator) flag("can_post_messages") else false }
+                else if (administrator) true
+                else if (role == "chatMemberStatusMember") chat.optJSONObject("permissions")?.opt("can_send_basic_messages") as? Boolean
+                else {
+                    val own = status.optJSONObject("permissions")?.opt("can_send_basic_messages") as? Boolean
+                    val defaults = chat.optJSONObject("permissions")?.opt("can_send_basic_messages") as? Boolean
+                    if (own != null && defaults != null) own && defaults else null
+                }
+            result.add(BotChat(ChatPreview(chatId, chat.getString("title"), if (channel) "channel" else if (type.optString("@type") == "chatTypeBasicGroup") "group" else "supergroup", null), role, canPost, if (channel && administrator) flag("can_edit_messages") else false, if (administrator) flag("can_delete_messages") else false))
             delay(50)
         }
         verifyIdentity()
