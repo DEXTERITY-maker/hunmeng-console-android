@@ -7,7 +7,8 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /** Authenticated envelope for account sessions. Bot API tokens never enter this store. */
-internal class SessionEncryption(private val key: () -> SecretKey, private val maxPlaintext: Int = MAX_PLAINTEXT) {
+internal class SessionEncryption(private val key: () -> SecretKey, private val maxPlaintext: Int) {
+    constructor(key: () -> SecretKey) : this(key, MAX_PLAINTEXT)
     fun seal(plaintext: ByteArray): ByteArray {
         require(plaintext.size in 1..maxPlaintext)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")

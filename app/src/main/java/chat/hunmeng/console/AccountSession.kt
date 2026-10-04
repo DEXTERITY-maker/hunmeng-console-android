@@ -169,10 +169,15 @@ internal class AccountSessionCoordinator(
                     store.save(updated)
                     current = updated
                     saved.clearKey()
+                    _state.value = _state.value.copy(hasClientConfiguration = true)
                 }
                 if (lease != generation.get()) { updated.clearKey(); return@withLock }
                 val id = withTimeout(300_000) { telegram.resume(updated) }
-                require(id == profile.telegramId)
+                if (id != profile.telegramId) {
+                    val cleanup = withContext(NonCancellable) { telegram.revokeCloseAndErase() }
+                    if (!cleanup.localDeleted) _state.value = _state.value.copy(clientPhase = AccountClientPhase.CLEANUP_REQUIRED)
+                    throw IllegalStateException("Account identity mismatch")
+                }
                 if (lease == generation.get()) {
                     ready = true
                     _state.value = _state.value.copy(clientPhase = AccountClientPhase.READY, hasClientConfiguration = true)
@@ -182,7 +187,7 @@ internal class AccountSessionCoordinator(
                 throw error
             }
         } catch (_: TimeoutCancellationException) {
-            if (lease == generation.get()) _state.value = _state.value.copy(clientPhase = AccountClientPhase.ERROR)
+            if (lease == generation.get() && _state.value.clientPhase != AccountClientPhase.CLEANUP_REQUIRED) _state.value = _state.value.copy(clientPhase = AccountClientPhase.ERROR)
         } catch (cancelled: CancellationException) {
             if (lease == generation.get()) _state.value = _state.value.copy(clientPhase = AccountClientPhase.UNCONNECTED)
             throw cancelled
@@ -210,7 +215,9 @@ internal class AccountSessionCoordinator(
                 var clean = true
                 var serverRevoked = false
                 var telegramRevoked = false
-                val credential = current?.serverSession
+                val saved = try { lock.withLock { store.load() } } catch (_: Exception) { null }
+                val credential = current?.serverSession ?: saved?.serverSession
+                saved?.clearKey()
                 if (credential != null) withTimeoutOrNull(15_000) {
                     try { verifier.revoke(credential); serverRevoked = true } catch (_: Exception) { /* local cleanup still runs */ }
                 }

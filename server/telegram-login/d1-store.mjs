@@ -48,6 +48,7 @@ export class D1LoginStore {
     await this.db.batch([
       this.db.prepare('DELETE FROM telegram_login_attempts WHERE expires_at<=?').bind(now),
       this.db.prepare('DELETE FROM telegram_account_sessions WHERE expires_at<=?').bind(now),
+      this.db.prepare('DELETE FROM telegram_login_rate_limits WHERE expires_at<=?').bind(now),
     ]);
   }
 }

@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { D1LoginStore } from './d1-store.mjs';
 import { handleTelegramLogin } from './router.mjs';
+import { limitLoginRequest } from './rate-limit.mjs';
 
 function fixture() {
   const db = new DatabaseSync(':memory:');
@@ -64,5 +65,16 @@ test('configured endpoints reject foreign browser origins and oversized input', 
     assert.equal(foreign.status, 403);
     const oversized = await handleTelegramLogin(new Request('https://example.invalid/api/account/login/begin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: 'a'.repeat(10_241) }), env);
     assert.equal(oversized.status, 413);
+  } finally { db.close(); }
+});
+test('D1 rate limits are atomic, expire and retain no raw client address', async () => {
+  const { db, adapter, dataKey } = fixture();
+  try {
+    const env = { DB: adapter, TELEGRAM_LOGIN_DATA_KEY: dataKey };
+    const request = new Request('https://example.invalid/api/account/login/begin', { headers: { 'CF-Connecting-IP': '192.0.2.7' } });
+    for (let i = 0; i < 10; i++) await limitLoginRequest(request, env, 'begin', 1000);
+    await assert.rejects(() => limitLoginRequest(request, env, 'begin', 1000), error => error.status === 429);
+    assert.equal(JSON.stringify(db.prepare('SELECT * FROM telegram_login_rate_limits').all()).includes('192.0.2.7'), false);
+    await limitLoginRequest(request, env, 'begin', 1500);
   } finally { db.close(); }
 });

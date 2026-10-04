@@ -1,12 +1,13 @@
 import { AuthError, authResponse, TelegramLoginService } from './auth.mjs';
 import { D1LoginStore } from './d1-store.mjs';
+import { limitLoginRequest } from './rate-limit.mjs';
 
 const securityHeaders = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
 /** Mount under /api/account/login on the existing public Hunmeng Console backend. */
 export async function handleTelegramLogin(request, env) {
   const url = new URL(request.url);
   const action = url.pathname.split('/').at(-1);
-  const configured = Boolean(env.TELEGRAM_LOGIN_CLIENT_ID && env.TELEGRAM_LOGIN_CLIENT_SECRET && env.TELEGRAM_LOGIN_DATA_KEY && env.DB);
+  const configured = Boolean(/^[1-9][0-9]{4,15}$/.test(String(env.TELEGRAM_LOGIN_CLIENT_ID ?? '')) && typeof env.TELEGRAM_LOGIN_CLIENT_SECRET === 'string' && env.TELEGRAM_LOGIN_CLIENT_SECRET.length >= 16 && /^[A-Za-z0-9_-]{43}$/.test(env.TELEGRAM_LOGIN_DATA_KEY ?? '') && env.DB);
   if (action === 'config' && request.method === 'GET') {
     return Response.json(configured ? { configured: true, clientId: String(env.TELEGRAM_LOGIN_CLIENT_ID), redirectUri: `https://app${env.TELEGRAM_LOGIN_CLIENT_ID}-login.tg.dev/tglogin` } : { configured: false }, { headers: securityHeaders });
   }
@@ -15,6 +16,7 @@ export async function handleTelegramLogin(request, env) {
     if (request.method !== 'POST') throw new AuthError('method_not_allowed', 405);
     const origin = request.headers.get('origin');
     if (origin && origin !== url.origin) throw new AuthError('invalid_origin', 403);
+    await limitLoginRequest(request, env, action);
     if (!request.headers.get('content-type')?.startsWith('application/json')) throw new AuthError('json_required');
     const reader = request.body?.getReader(); if (!reader) throw new AuthError();
     let length = 0; const chunks = [];
