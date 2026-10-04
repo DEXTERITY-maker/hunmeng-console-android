@@ -341,6 +341,10 @@ class ConsoleController(
     }
 
     fun setWelcome(value: String) {
+        if (containsCredential(value)) {
+            update { it.copy(commandError = ConsoleText("Приветствие не может содержать токен или другие секреты", "The greeting cannot contain a token or other secrets")) }
+            return
+        }
         prefs.putString("welcome", value)
         prefs.putBoolean("welcome_custom", true)
         update { it.copy(welcome = value, welcomeCustom = true) }
