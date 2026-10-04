@@ -2,7 +2,6 @@ package chat.hunmeng.console
 
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import android.graphics.Bitmap
@@ -18,7 +17,9 @@ class ConsoleDeviceTest {
         compose.waitForIdle()
         val output = requireNotNull(InstrumentationRegistry.getArguments().getString("additionalTestOutputDir")) { "Test output directory was not supplied" }
         val directory = File(output, "screenshots").apply { mkdirs() }
-        File(directory, "$name.png").outputStream().use { output -> compose.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, output) }
+        val screenshot = requireNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()) { "Device screenshot unavailable" }
+        File(directory, "$name.png").outputStream().use { stream -> check(screenshot.compress(Bitmap.CompressFormat.PNG, 100, stream)) }
+        screenshot.recycle()
     }
     @Test fun tabsThemesLanguageAndRotationDoNotConnectOrSend() {
         compose.onNodeWithText("RU").performClick()

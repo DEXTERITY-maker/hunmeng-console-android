@@ -59,6 +59,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
@@ -75,6 +76,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.core.view.WindowCompat
 
 class MainActivity : ComponentActivity() {
     private val viewModel by viewModels<ConsoleViewModel>()
@@ -91,6 +93,16 @@ class MainActivity : ComponentActivity() {
 private fun HunmengConsole(viewModel: ConsoleViewModel) {
     val state by viewModel.console.state.collectAsStateWithLifecycle()
     ConsoleTheme(state.themeMode) {
+        val context = LocalContext.current
+        val dark = MaterialTheme.colorScheme.background == Color(0xFF0E1923)
+        SideEffect {
+            (context as? ComponentActivity)?.let { activity ->
+                WindowCompat.getInsetsController(activity.window, activity.window.decorView).apply {
+                    isAppearanceLightStatusBars = !dark
+                    isAppearanceLightNavigationBars = !dark
+                }
+            }
+        }
         ConsoleScreen(state, viewModel.console)
     }
 }
