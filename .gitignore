@@ -16,3 +16,4 @@ captures/
 *.keystore
 *.pem
 *.key
+app/src/main/jniLibs/

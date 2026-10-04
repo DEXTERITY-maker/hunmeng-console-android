@@ -31,6 +31,7 @@ class AccountSessionTest {
         var cleaned = false
         override suspend fun resume(session: AccountSessionRecord) = userId
         override suspend fun revokeCloseAndErase(): ClientSessionCleanup { cleaned = true; return cleanup }
+        override suspend fun closeWithoutErasing() = true
     }
     private fun record() = AccountSessionRecord(7L, "TEST_OPAQUE_ACCOUNT_SESSION_".repeat(3), ByteArray(32) { 9 })
 

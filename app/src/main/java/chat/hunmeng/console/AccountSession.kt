@@ -11,10 +11,13 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 import org.json.JSONObject
 import java.security.SecureRandom
 import java.util.Base64
 import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicReference
 
 data class VerifiedAccount(val telegramId: Long, val displayName: String, val username: String?)
 
@@ -63,6 +66,7 @@ internal interface TelegramClientSession {
     suspend fun resume(session: AccountSessionRecord): Long
     /** Revoke the Telegram authorization when reachable, close native client, delete its private directory. */
     suspend fun revokeCloseAndErase(): ClientSessionCleanup
+    suspend fun closeWithoutErasing(): Boolean
 }
 internal data class ClientSessionCleanup(val localDeleted: Boolean, val remoteRevoked: Boolean)
 
@@ -82,8 +86,12 @@ internal class AccountSessionCoordinator(
     private val _state = MutableStateFlow(AccountSessionState())
     val state: StateFlow<AccountSessionState> = _state.asStateFlow()
     private var current: AccountSessionRecord? = null
+    private val activeOperation = AtomicReference<Job?>()
 
     suspend fun restore() = operationLock.withLock {
+        if (_state.value.phase in setOf(AccountPhase.SIGNING_OUT, AccountPhase.CLEANUP_REQUIRED, AccountPhase.VERIFIED)) return@withLock
+        val job = currentCoroutineContext()[Job]
+        activeOperation.set(job)
         val lease = generation.incrementAndGet()
         _state.value = AccountSessionState(AccountPhase.RESTORING)
         try {
@@ -97,11 +105,13 @@ internal class AccountSessionCoordinator(
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (_: Exception) {
             if (lease == generation.get()) _state.value = AccountSessionState(AccountPhase.UNAVAILABLE)
-        }
+        } finally { activeOperation.compareAndSet(job, null) }
     }
 
     suspend fun acceptLogin(record: AccountSessionRecord) = operationLock.withLock {
         check(_state.value.phase in setOf(AccountPhase.SIGNED_OUT, AccountPhase.UNAVAILABLE))
+        val job = currentCoroutineContext()[Job]
+        activeOperation.set(job)
         val lease = generation.incrementAndGet()
         _state.value = AccountSessionState(AccountPhase.RESTORING)
         try { activate(record, lease, persist = true) }
@@ -111,7 +121,7 @@ internal class AccountSessionCoordinator(
         catch (cancelled: CancellationException) { throw cancelled }
         catch (_: Exception) {
             if (lease == generation.get()) _state.value = AccountSessionState(AccountPhase.UNAVAILABLE)
-        }
+        } finally { activeOperation.compareAndSet(job, null) }
     }
 
     private suspend fun activate(record: AccountSessionRecord, lease: Long, persist: Boolean) {
@@ -120,7 +130,7 @@ internal class AccountSessionCoordinator(
             val profile = withTimeout(15_000) { verifier.verify(record.serverSession) }
             require(profile.telegramId == record.accountId)
             if (lease != generation.get()) return
-            val telegramId = withTimeout(30_000) { telegram.resume(record) }
+            val telegramId = withTimeout(300_000) { telegram.resume(record) }
             require(telegramId == profile.telegramId)
             lock.withLock {
                 if (lease != generation.get()) return@withLock
@@ -131,13 +141,19 @@ internal class AccountSessionCoordinator(
                 retained = true
                 _state.value = AccountSessionState(AccountPhase.VERIFIED, profile)
             }
-        } finally { if (!retained) record.clearKey() }
+        } finally {
+            if (!retained) {
+                withContext(NonCancellable) { withTimeoutOrNull(30_000) { try { telegram.closeWithoutErasing() } catch (_: Exception) { } } }
+                record.clearKey()
+            }
+        }
     }
 
     suspend fun logout() {
         val lease = generation.incrementAndGet()
         _state.value = AccountSessionState(AccountPhase.SIGNING_OUT)
         clearConsoleAndRequests()
+        activeOperation.get()?.cancel()
         // Cancellation or a network outage must not skip local erasure.
         withContext(NonCancellable) {
             operationLock.withLock {

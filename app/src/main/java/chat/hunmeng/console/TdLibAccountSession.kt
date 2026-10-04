@@ -70,6 +70,13 @@ internal class TdLibAccountSession(context: Context, private val runtime: TdLibR
         check(active.authorization.value == "authorizationStateReady")
         return TdLibInventorySource(active, account)
     }
+    override suspend fun closeWithoutErasing(): Boolean {
+        val closed = client?.close() ?: true
+        watcher?.cancelAndJoin(); watcher = null
+        _qrLink.value = null
+        if (closed) { client = null; _phase.value = "unconnected" } else _phase.value = "cleanup_required"
+        return closed
+    }
     override suspend fun revokeCloseAndErase(): ClientSessionCleanup {
         val active = client
         var revoked = false
