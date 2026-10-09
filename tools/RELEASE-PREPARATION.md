@@ -15,8 +15,8 @@ Workflow `android.yml` проверяет сервер на Node.js 26, нати
 Пример для проверяемой сборки с сохранёнными текущими метаданными:
 
 ```sh
-gh run download 37176423096 --repo DEXTERITY-maker/hunmeng-console-android --name hunmeng-console-unsigned-release --dir .cache/unsigned-release-37176423096
-python tools/prepare_android_release.py .cache/unsigned-release-37176423096/app/build/outputs/apk/release/app-release-unsigned.apk --output-dir .cache/signed-candidate-37176423096 --source-commit 6ae18a5ebf8ae018db02fa75f121a46bff6ea555 --ci-run-id 37176423096 --version-name 0.0.4-beta --version-code 2 --client-id 8883240190 --app-id 1853479971
+gh run download 37998764751 --repo DEXTERITY-maker/hunmeng-console-android --name hunmeng-console-unsigned-release --dir .cache/unsigned-release-37998764751
+python tools/prepare_android_release.py .cache/unsigned-release-37998764751/app/build/outputs/apk/release/app-release-unsigned.apk --output-dir .cache/signed-candidate-37998764751 --source-commit ee8d7c12e4b1c9073b967d972eba56a773b128c6 --ci-run-id 37998764751 --version-name 0.0.4-beta --version-code 2 --client-id 8883240190 --app-id 1853479971
 ```
 
 Для следующей сборки брать run ID и полный commit SHA из её GitHub Actions, ожидаемую версию — из согласованных метаданных, Client ID и отдельный native App URL ID — из публичной конфигурации BotFather. Номер версии этот инструмент не меняет. Существующий output-каталог не перезаписывает.

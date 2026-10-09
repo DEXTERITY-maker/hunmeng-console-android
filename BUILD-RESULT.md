@@ -84,3 +84,17 @@ Backend version 10 / runtime revision 4 опубликован, source `b3a67da2
 - .env и локальные Telegram-файлы с токенами не читались; токен не включён в исходники, отчёты и APK. Проверка DEX не обнаружила строки, соответствующие формату Telegram-токена.
 - Токен, сообщения, события и диагностика остаются в памяти; постоянная фоновая служба и источник автоматических APK-обновлений не добавлялись.
 - Сборка выполнена в CI, а не в Termux ARM64. Новые исходники и отчёты опубликованы в репозитории; APK доступен в отдельном бета-выпуске.
+
+## Актуальная проверка интерфейса — 10 октября 2026
+
+[CI 37998764751](https://github.com/DEXTERITY-maker/hunmeng-console-android/actions/runs/37998764751), source `ee8d7c12e4b1c9073b967d972eba56a773b128c6`: все пять jobs завершились success. 94 Android unit-теста / 0 failures / 0 ignored (11.450 s), 22 серверных теста / 0 failures, 10 packaging-тестов. Debug/release lint каждый: 0 ошибок / 31 предупреждение. Шесть instrumentation-тестов прошли дважды на Android 15 x86_64: font 1.0 и 1.6; получены 24 PNG.
+
+Вход, карточки ботов/чатов, обзор, форма сообщения и диалог обновления приведены к композиции макетов. Исправлены реальные перекрытия переключателя языка в landscape и нижней карточки standalone-входа системными панелями. Проверки измеряют границы элементов относительно insets, нажимают язык, открывают настоящую IME, поворачивают Activity и проверяют сохранение синтетического черновика. Консоль и профиль используют один настоящий AndroidUpdateController; устаревший placeholder обновления удалён.
+
+[Снимки интерфейса](reports/ui-v005-ee8d7c1/README.md), [визуальная сверка](reports/v0.0.5-visual-alignment.md), [полный аудит требований](reports/v0.0.5-requirements-audit.md), [проверка телефона](reports/v0.0.5-device-verification.md).
+
+Подписанный non-debug кандидат: **60,226,992** байт; SHA-256 `3e7922bdf651d55369fd4395e142b293720f4d4c0c1ad64f6e489094376155fc`. Package `chat.hunmeng.console`, versionName `0.0.4-beta`, versionCode `2`; версия не повышалась. Проверены постоянная v2/v3 подпись, ZIP/CRC, обе TDLib ABI, лицензии, ELF/ZIP 16 KB и точные App Link metadata. Все 11 PNG бренда, обычного и адаптивного launcher совпадают по пикселям с ресурсами; хеш исходной иконки владельца сохранён.
+
+Файл на телефоне: `/storage/emulated/0/Download/Hunmeng-Console-UI-candidate-37998764751.apk`; копия и соседний `.sha256` проверены. Команда `termux-open` завершилась успешно и передала APK установщику; установка не подтверждена. ADB работает с очищенными LD_LIBRARY_PATH/LD_PRELOAD, авторизованных устройств нет. Backend config HTTP 200 / configured=true, actual assetlinks HTTP 200 / правильные package, сертификат и relation.
+
+Это кандидат, не публичный v0.0.5beta. UI job использует Client ID `0`, компоненты аккаунта и окно обновления — синтетические fixtures; настоящий Login/TDLib, реальное восстановление/выход, права чатов и совместимость установки ещё требуют проверки телефона. [Публичный Android-выпуск](https://github.com/DEXTERITY-maker/hunmeng-console-android/releases/tag/v0.0.4-beta-sync) и `updates/android.json` не изменялись.
