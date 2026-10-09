@@ -138,7 +138,7 @@ internal fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController) {
     Scaffold(
         bottomBar = {
             Surface(shadowElevation = 6.dp, color = MaterialTheme.colorScheme.surface) {
-                Column(Modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp)) {
                     val largeText = LocalDensity.current.fontScale > 1.3f
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Button(onClick = vm::startPolling, enabled = canStartPolling(state), modifier = Modifier.weight(1f).heightIn(min = 48.dp),

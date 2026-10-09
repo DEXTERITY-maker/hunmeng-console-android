@@ -23,21 +23,22 @@ internal fun ConsoleHeader(
     onTheme: () -> Unit,
     onLanguage: (UiLanguage) -> Unit,
     onBack: () -> Unit,
+    onDestination: ((AppDestination) -> Unit)? = null,
 ) {
     val largeText = LocalDensity.current.fontScale > 1.3f
     Surface(color = MaterialTheme.colorScheme.surface) {
         BoxWithConstraints(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 6.dp)) {
-            if (largeText || maxWidth < 310.dp) {
+            if ((largeText && maxWidth < 600.dp) || maxWidth < 310.dp) {
                 Column {
                     HeaderIdentity(language, authorization, onBack, Modifier.fillMaxWidth())
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                        HeaderControls(language, onTheme, onLanguage)
+                        HeaderControls(language, onTheme, onLanguage, onDestination)
                     }
                 }
             } else {
                 Row(Modifier.fillMaxWidth().heightIn(min = 52.dp), verticalAlignment = Alignment.CenterVertically) {
                     HeaderIdentity(language, authorization, onBack, Modifier.weight(1f))
-                    HeaderControls(language, onTheme, onLanguage)
+                    HeaderControls(language, onTheme, onLanguage, onDestination)
                 }
             }
         }
@@ -63,9 +64,25 @@ private fun HeaderIdentity(language: UiLanguage, authorization: Boolean, onBack:
 }
 
 @Composable
-private fun HeaderControls(language: UiLanguage, onTheme: () -> Unit, onLanguage: (UiLanguage) -> Unit) {
+private fun HeaderControls(language: UiLanguage, onTheme: () -> Unit, onLanguage: (UiLanguage) -> Unit,
+    onDestination: ((AppDestination) -> Unit)?) {
     val ru = language == UiLanguage.RU
     var languageMenu by remember { mutableStateOf(false) }
+    var destinationMenu by remember { mutableStateOf(false) }
+    if (onDestination != null) Box {
+        IconButton(onClick = { destinationMenu = true }) {
+            Icon(painterResource(R.drawable.ic_menu), if (ru) "Разделы" else "Sections")
+        }
+        DropdownMenu(expanded = destinationMenu, onDismissRequest = { destinationMenu = false }) {
+            AppDestination.entries.forEach { destination ->
+                DropdownMenuItem(text = { Text(when (destination) {
+                    AppDestination.MY_BOTS -> if (ru) "Мои боты" else "My bots"
+                    AppDestination.CONSOLE -> if (ru) "Консоль" else "Console"
+                    AppDestination.PROFILE -> if (ru) "Профиль" else "Profile"
+                }) }, onClick = { onDestination(destination); destinationMenu = false })
+            }
+        }
+    }
     IconButton(onClick = onTheme) {
         Icon(painterResource(R.drawable.ic_theme), if (ru) "Настройки темы" else "Theme settings")
     }

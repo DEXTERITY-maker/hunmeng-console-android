@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -25,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 internal fun AccountAppScreen(vm: ConsoleViewModel, console: ConsoleUiState) {
     val state by vm.accounts.state.collectAsStateWithLifecycle()
     val session by vm.accountSession.state.collectAsStateWithLifecycle()
@@ -33,6 +35,9 @@ internal fun AccountAppScreen(vm: ConsoleViewModel, console: ConsoleUiState) {
     val qr by vm.telegramClient.qrLink.collectAsStateWithLifecycle()
     val update by vm.updates.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val shortWindow = LocalConfiguration.current.screenHeightDp < 480
+    val keyboardVisible = WindowInsets.isImeVisible
+    val standaloneLogin = state.destination == AppDestination.MY_BOTS && session.phase == AccountPhase.SIGNED_OUT
     val scope = rememberCoroutineScope()
     val ru = console.language == UiLanguage.RU
     fun t(ru: String, en: String) = if (console.language == UiLanguage.RU) ru else en
@@ -47,14 +52,16 @@ internal fun AccountAppScreen(vm: ConsoleViewModel, console: ConsoleUiState) {
         }
     }
     Scaffold(
+        modifier = Modifier.imePadding(),
         topBar = {
-            ConsoleHeader(console.language,
+            if (!keyboardVisible) ConsoleHeader(console.language,
                 authorization = state.destination != AppDestination.CONSOLE && session.phase == AccountPhase.SIGNED_OUT,
                 onTheme = { settings = true }, onLanguage = vm.console::setLanguage,
-                onBack = { vm.accounts.destination(AppDestination.CONSOLE) })
+                onBack = { vm.accounts.destination(AppDestination.CONSOLE) },
+                onDestination = if (shortWindow) vm.accounts::destination else null)
         },
         bottomBar = {
-            NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+            if (!standaloneLogin && !shortWindow && !keyboardVisible) NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                 AppDestination.entries.forEach { destination ->
                     NavigationBarItem(selected = state.destination == destination, onClick = { vm.accounts.destination(destination) },
                         icon = { Icon(painterResource(when (destination) { AppDestination.MY_BOTS -> R.drawable.ic_bot; AppDestination.CONSOLE -> R.drawable.ic_console; AppDestination.PROFILE -> R.drawable.ic_profile }), null) },

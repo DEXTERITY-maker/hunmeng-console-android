@@ -5,6 +5,13 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import android.graphics.Bitmap
+import android.content.pm.ActivityInfo
+import android.content.res.Configuration
+import android.os.ParcelFileDescriptor
+import android.provider.Settings
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.test.espresso.Espresso.closeSoftKeyboard
 import java.io.File
 import org.junit.Rule
 import org.junit.Test
@@ -34,6 +41,7 @@ class ConsoleDeviceTest {
         capture("login-light-details")
         compose.onNodeWithTag("login-brand").performScrollTo().assertIsDisplayed()
         capture("login-light")
+        compose.onNodeWithText("Вернуться в консоль").performScrollTo().performClick()
         compose.onNodeWithText("Профиль").performClick()
         compose.onNodeWithText("Проверить обновления").assertExists()
         compose.onNodeWithText("Консоль").performClick()
@@ -46,6 +54,8 @@ class ConsoleDeviceTest {
         compose.onNodeWithText("Шаблоны сообщений").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Новое сообщение").performScrollTo().assertIsDisplayed()
         capture("message-dark")
+        compose.onNodeWithText("Предпросмотр").performScrollTo().assertIsDisplayed()
+        capture("message-dark-details")
         compose.onNodeWithText("События").performClick()
         compose.onNodeWithText("Поиск событий").assertExists()
         compose.onNodeWithContentDescription("Выбрать язык").performClick()
@@ -54,5 +64,60 @@ class ConsoleDeviceTest {
         compose.onNodeWithText("No bot connected").assertIsDisplayed()
         compose.activityRule.scenario.recreate()
         compose.onNodeWithText("No bot connected").assertIsDisplayed()
+    }
+
+    private fun withSoftwareKeyboard(action: () -> Unit) {
+        val key = "show_ime_with_hard_keyboard"
+        val previous = Settings.Secure.getString(compose.activity.contentResolver, key)
+        check(previous == null || previous in setOf("0", "1"))
+        fun setting(command: String) {
+            ParcelFileDescriptor.AutoCloseInputStream(InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command))
+                .use { it.readBytes() }
+        }
+        setting("settings put secure $key 1")
+        try { action() } finally {
+            setting(if (previous == null) "settings delete secure $key" else "settings put secure $key $previous")
+        }
+    }
+
+    @Test fun realKeyboardAndLandscapeKeepDraftAndExplicitControlsAvailable() = withSoftwareKeyboard {
+        compose.onNode(hasContentDescription("Выбрать язык") or hasContentDescription("Choose language")).performClick()
+        compose.onNodeWithText("Русский (RU)").performClick()
+        compose.onNodeWithText("Сообщение").performClick()
+        val draft = "Синтетический черновик 🎬"
+        val message = hasSetTextAction() and hasText("Текст сообщения (1–4096 символов)")
+        compose.onNode(message).performScrollTo().performClick().performTextInput(draft)
+        compose.waitUntil(timeoutMillis = 10_000) {
+            ViewCompat.getRootWindowInsets(compose.activity.window.decorView)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+        }
+        compose.onNodeWithText(draft).assertIsDisplayed()
+        compose.onNodeWithText("Запустить").assertIsDisplayed().assertIsNotEnabled()
+        capture("message-keyboard")
+        closeSoftKeyboard()
+        compose.waitUntil(timeoutMillis = 10_000) {
+            ViewCompat.getRootWindowInsets(compose.activity.window.decorView)?.isVisible(WindowInsetsCompat.Type.ime()) == false
+        }
+        try {
+            compose.activityRule.scenario.onActivity { it.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE }
+            compose.waitUntil(timeoutMillis = 10_000) { compose.activity.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE }
+            closeSoftKeyboard()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                ViewCompat.getRootWindowInsets(compose.activity.window.decorView)?.isVisible(WindowInsetsCompat.Type.ime()) == false
+            }
+            compose.onNodeWithText(draft).performScrollTo().assertIsDisplayed()
+            compose.onNodeWithContentDescription("Разделы").assertIsDisplayed()
+            compose.onNodeWithText("Предпросмотр").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText("Запустить").assertIsDisplayed().assertIsNotEnabled()
+            capture("message-landscape")
+            compose.onNodeWithContentDescription("Разделы").performClick()
+            compose.onNodeWithText("Профиль").performClick()
+            compose.onNodeWithText("Проверить обновления").assertExists()
+        } finally {
+            compose.activityRule.scenario.onActivity { it.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT }
+        }
+        compose.waitUntil(timeoutMillis = 10_000) { compose.activity.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT }
+        compose.onNodeWithText("Консоль").performClick()
+        compose.onNodeWithText(draft).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Предпросмотр").performScrollTo().assertIsDisplayed()
     }
 }

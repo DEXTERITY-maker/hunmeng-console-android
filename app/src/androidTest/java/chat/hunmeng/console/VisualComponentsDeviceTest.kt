@@ -33,11 +33,20 @@ class VisualComponentsDeviceTest {
         override fun remove(key: String) { values.remove(key) }
     }
 
-    private fun capture(name: String) {
+    private fun capture(name: String, expectedTheme: ThemeMode) {
         compose.waitForIdle()
         val output = requireNotNull(InstrumentationRegistry.getArguments().getString("additionalTestOutputDir"))
         val directory = File(output, "screenshots").apply { mkdirs() }
-        val screenshot = requireNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
+        // UiAutomation may see the previous Surface frame even after Compose is idle.
+        // Wait for the actual screenshot pixels instead of labelling a stale light frame dark.
+        val expected = if (expectedTheme == ThemeMode.DARK) 0x192631 else 0xffffff
+        var rendered: Bitmap? = null
+        compose.waitUntil(timeoutMillis = 5_000) {
+            val frame = requireNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
+            val matching = (3..16).sumOf { x -> (3..16).count { y -> (frame.getPixel(frame.width * x / 20, frame.height * y / 20) and 0xffffff) == expected } }
+            if (matching > 15) { rendered = frame; true } else { frame.recycle(); false }
+        }
+        val screenshot = checkNotNull(rendered)
         try {
             File(directory, "$name.png").outputStream().use { check(screenshot.compress(Bitmap.CompressFormat.PNG, 100, it)) }
         } finally { screenshot.recycle() }
@@ -71,9 +80,9 @@ class VisualComponentsDeviceTest {
             compose.onNodeWithText("Сохранять сообщения как шаблоны.").performScrollTo().assertIsDisplayed()
             compose.onNodeWithText("Позже").assertIsDisplayed()
             compose.onNodeWithText("Обновить").assertIsEnabled()
-            capture("update-light")
+            capture("update-light", theme)
             compose.runOnIdle { theme = ThemeMode.DARK }
-            capture("update-dark")
+            capture("update-dark", theme)
             compose.runOnIdle { language = UiLanguage.EN }
             compose.onNodeWithText("Update available").assertIsDisplayed()
             compose.onNodeWithText("Save messages as templates.").performScrollTo().assertIsDisplayed()
@@ -119,9 +128,9 @@ class VisualComponentsDeviceTest {
         compose.runOnIdle { assertEquals(1, selections) }
         compose.onNodeWithText("Роль бота: администратор").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(permissions).assertDoesNotExist()
-        capture("account-cards-light")
+        capture("account-cards-light", theme)
         compose.runOnIdle { theme = ThemeMode.DARK }
-        capture("account-cards-dark")
+        capture("account-cards-dark", theme)
         compose.onNodeWithText("Синтетический канал").performClick()
         compose.onNodeWithText(permissions).performScrollTo().assertIsDisplayed()
     }
