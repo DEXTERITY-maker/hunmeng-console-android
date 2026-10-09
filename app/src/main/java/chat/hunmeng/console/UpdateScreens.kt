@@ -3,14 +3,17 @@ package chat.hunmeng.console
 import android.content.ActivityNotFoundException
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -25,10 +28,12 @@ internal fun AndroidUpdateDialogs(controller: AndroidUpdateController, language:
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { needsPermission = !context.packageManager.canRequestPackageInstalls() }
     state.decision.available?.let { release ->
         AlertDialog(onDismissRequest = { if (state.phase != UpdatePhase.DOWNLOADING) controller.later() },
-            title = { Text(t("Доступно обновление — ", "Update available — ") + release.versionName) },
+            shape = MaterialTheme.shapes.large,
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { UpdateReleaseTitle(t("Доступно обновление", "Update available"), release.versionName) },
             text = { Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(t("После обновления я смогу:", "After updating, I can:"))
-                Text(release.changes.text(language))
+                Text(t("После обновления я смогу:", "After updating, I can:"), fontWeight = FontWeight.SemiBold)
+                ReleaseChanges(release.changes.text(language))
                 if (!state.decision.signatureCompatible) Text(t("Подпись установленного приложения отличается. Эта сборка не сможет заменить его обычным обновлением. Приложение не будет удалено автоматически.", "The installed app uses a different signing certificate. This APK cannot replace it as a regular update. The app will not be uninstalled automatically."), color = MaterialTheme.colorScheme.error)
                 if (state.phase == UpdatePhase.DOWNLOADING) { CircularProgressIndicator(); Text(t("Скачиваем и проверяем APK…", "Downloading and verifying APK…")) }
                 if (state.phase == UpdatePhase.READY) Text(t("APK проверен. Для установки откроется системный установщик Android.", "APK verified. Android's system installer will complete installation."))
@@ -44,11 +49,49 @@ internal fun AndroidUpdateDialogs(controller: AndroidUpdateController, language:
                     if (!context.packageManager.canRequestPackageInstalls()) { needsPermission = true; permission.launch(apkPermissionIntent(context)) }
                     else { needsPermission = false; installer.launch(apkInstallIntent(context, file)) }
                 } catch (_: ActivityNotFoundException) { installError = true } catch (_: SecurityException) { installError = true }
-            }, enabled = state.decision.signatureCompatible && state.phase != UpdatePhase.DOWNLOADING) { Text(if (state.phase == UpdatePhase.READY) t("Установить", "Install") else t("Обновить", "Update")) } },
-            dismissButton = { TextButton(onClick = { controller.cancelDownload(); controller.later() }) { Text(if (state.phase == UpdatePhase.DOWNLOADING) t("Отмена", "Cancel") else t("Позже", "Later")) } })
+            }, enabled = state.decision.signatureCompatible && state.phase != UpdatePhase.DOWNLOADING,
+                shape = MaterialTheme.shapes.medium, modifier = Modifier.heightIn(min = 48.dp)) { Text(if (state.phase == UpdatePhase.READY) t("Установить", "Install") else t("Обновить", "Update")) } },
+            dismissButton = { OutlinedButton(onClick = { controller.cancelDownload(); controller.later() },
+                shape = MaterialTheme.shapes.medium, modifier = Modifier.heightIn(min = 48.dp)) { Text(if (state.phase == UpdatePhase.DOWNLOADING) t("Отмена", "Cancel") else t("Позже", "Later")) } })
     }
     state.decision.whatsNew?.let { release -> AlertDialog(onDismissRequest = controller::dismissWhatsNew,
-        title = { Text(t("Что нового — ", "What's new — ") + release.versionName) },
-        text = { Text(release.changes.text(language), Modifier.verticalScroll(rememberScrollState())) },
-        confirmButton = { Button(onClick = controller::dismissWhatsNew) { Text(t("Понятно", "Got it")) } }) }
+        shape = MaterialTheme.shapes.large, containerColor = MaterialTheme.colorScheme.surface,
+        title = { UpdateReleaseTitle(t("Что нового", "What's new"), release.versionName) },
+        text = { Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(t("Теперь я могу:", "Now I can:"), fontWeight = FontWeight.SemiBold)
+            ReleaseChanges(release.changes.text(language))
+        } },
+        confirmButton = { Button(onClick = controller::dismissWhatsNew, shape = MaterialTheme.shapes.medium,
+            modifier = Modifier.heightIn(min = 48.dp)) { Text(t("Понятно", "Got it")) } }) }
+}
+
+@Composable
+private fun UpdateReleaseTitle(title: String, versionName: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.primaryContainer) {
+            Icon(painterResource(R.drawable.ic_refresh), null, tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.padding(12.dp).size(28.dp))
+        }
+        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.primaryContainer) {
+            Text(versionName, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
+        }
+    }
+}
+
+@Composable
+private fun ReleaseChanges(changes: String) {
+    OutlinedCard(shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            changes.lines().filter(String::isNotBlank).forEachIndexed { index, change ->
+                if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Icon(painterResource(R.drawable.ic_template), null, modifier = Modifier.size(22.dp), tint = MaterialTheme.colorScheme.primary)
+                    Text(change, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+    }
 }

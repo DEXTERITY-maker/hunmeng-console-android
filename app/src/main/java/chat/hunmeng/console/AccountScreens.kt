@@ -6,7 +6,6 @@ import android.net.Uri
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.browser.customtabs.CustomTabsIntent
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -19,6 +18,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
@@ -47,28 +48,18 @@ internal fun AccountAppScreen(vm: ConsoleViewModel, console: ConsoleUiState) {
     }
     Scaffold(
         topBar = {
-            Surface(color = MaterialTheme.colorScheme.surface) {
-                Column(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Image(painterResource(R.drawable.brand_icon), null, Modifier.size(38.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text("Hunmeng Console", style = MaterialTheme.typography.titleMedium)
-                            Text(DISPLAY_VERSION, style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { settings = true }) { Icon(painterResource(R.drawable.ic_theme), t("Настройки темы", "Theme settings")) }
-                        TextButton(onClick = { vm.console.setLanguage(UiLanguage.RU) }) { Text("RU") }
-                        TextButton(onClick = { vm.console.setLanguage(UiLanguage.EN) }) { Text("EN") }
-                    }
-                }
-            }
+            ConsoleHeader(console.language,
+                authorization = state.destination != AppDestination.CONSOLE && session.phase == AccountPhase.SIGNED_OUT,
+                onTheme = { settings = true }, onLanguage = vm.console::setLanguage,
+                onBack = { vm.accounts.destination(AppDestination.CONSOLE) })
         },
         bottomBar = {
             NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                 AppDestination.entries.forEach { destination ->
                     NavigationBarItem(selected = state.destination == destination, onClick = { vm.accounts.destination(destination) },
-                        icon = { Icon(painterResource(when (destination) { AppDestination.MY_BOTS -> R.drawable.ic_bookmark; AppDestination.CONSOLE -> R.drawable.ic_plane; AppDestination.PROFILE -> R.drawable.ic_theme }), null) },
+                        icon = { Icon(painterResource(when (destination) { AppDestination.MY_BOTS -> R.drawable.ic_bot; AppDestination.CONSOLE -> R.drawable.ic_console; AppDestination.PROFILE -> R.drawable.ic_profile }), null) },
+                        colors = NavigationBarItemDefaults.colors(selectedIconColor = MaterialTheme.colorScheme.primary, selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer, unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant, unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant),
                         label = { Text(when (destination) { AppDestination.MY_BOTS -> t("Мои боты", "My bots"); AppDestination.CONSOLE -> t("Консоль", "Console"); AppDestination.PROFILE -> t("Профиль", "Profile") }) })
                 }
             }
@@ -90,9 +81,12 @@ internal fun AccountAppScreen(vm: ConsoleViewModel, console: ConsoleUiState) {
                     }
                     when (session.phase) {
                         AccountPhase.SIGNED_OUT -> {
-                            AccountCard(t("Войти через Telegram", "Sign in with Telegram")) {
-                                Text(t("Подтвердите вход на официальной странице Telegram. Мы получаем только имя, username и ID аккаунта.", "Confirm sign in on Telegram's official page. We receive only your name, username and account ID."))
-                                Text(t("После входа откроется раздел „Мои боты“.", "After sign in, the My bots section will open."))
+                            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                LoginBrand()
+                                Text(t("Войти через Telegram", "Log in with Telegram"), style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                                Text(t("Подтвердите вход своим Telegram-аккаунтом на официальной странице Telegram.", "Confirm sign in with your Telegram account on Telegram's official page."),
+                                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                                 Button(onClick = {
                                     loginLaunchFailed = false
                                     scope.launch {
@@ -100,9 +94,13 @@ internal fun AccountAppScreen(vm: ConsoleViewModel, console: ConsoleUiState) {
                                         try { CustomTabsIntent.Builder().setShowTitle(true).build().launchUrl(context, Uri.parse(url)) }
                                         catch (_: ActivityNotFoundException) { loginLaunchFailed = true; vm.login.cancel() }
                                     }
-                                }, enabled = login.phase !in setOf(LoginPhase.PREPARING, LoginPhase.VERIFYING, LoginPhase.WAITING), modifier = Modifier.fillMaxWidth()) {
-                                    Icon(painterResource(R.drawable.ic_plane), null); Spacer(Modifier.width(8.dp)); Text(t("Войти через Telegram", "Sign in with Telegram"))
+                                }, enabled = login.phase !in setOf(LoginPhase.PREPARING, LoginPhase.VERIFYING, LoginPhase.WAITING),
+                                    shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+                                    Icon(painterResource(R.drawable.ic_plane), null); Spacer(Modifier.width(8.dp)); Text(t("Войти через Telegram", "Log in with Telegram"))
                                 }
+                                Text(t("Мы получаем только имя, username и ID аккаунта. Подтверждение входа выполняется в Telegram.", "We receive only your name, username and account ID. Sign in is confirmed in Telegram."),
+                                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                MyBotsNotice(console.language)
                                 if (login.phase in setOf(LoginPhase.PREPARING, LoginPhase.VERIFYING)) { CircularProgressIndicator(); Text(t("Проверяем вход…", "Verifying sign in…")) }
                                 if (login.phase == LoginPhase.WAITING) {
                                     Text(t("Ожидаем подтверждения. Если вы закрыли страницу, отмените попытку и начните заново.", "Waiting for confirmation. If you closed the page, cancel and try again."))
@@ -110,6 +108,9 @@ internal fun AccountAppScreen(vm: ConsoleViewModel, console: ConsoleUiState) {
                                 }
                                 if (login.phase == LoginPhase.UNCONFIGURED) Text(t("Вход ещё не настроен для этой сборки. Требуется настройка приложения в BotFather и сервера Hunmeng Console.", "Sign in is not configured for this build. Hunmeng Console's BotFather application and server must be configured."), color = MaterialTheme.colorScheme.error)
                                 if (login.phase == LoginPhase.ERROR || loginLaunchFailed) Text(t("Не удалось войти. Проверьте сеть и попробуйте снова.", "Could not sign in. Check the network and try again."), color = MaterialTheme.colorScheme.error)
+                                TextButton(onClick = { vm.accounts.destination(AppDestination.CONSOLE) }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                                    Text(t("Вернуться в консоль", "Back to console"))
+                                }
                             }
                         }
                         AccountPhase.RESTORING -> AccountCard(t("Проверка аккаунта", "Verifying account")) { CircularProgressIndicator(); Text(t("Восстанавливаем зашифрованную сессию…", "Restoring the encrypted session…")) }
@@ -125,10 +126,7 @@ internal fun AccountAppScreen(vm: ConsoleViewModel, console: ConsoleUiState) {
                         }
                         AccountPhase.VERIFIED -> {
                             val profile = checkNotNull(session.account)
-                            AccountCard(profile.displayName) {
-                                profile.username?.let { Text("@$it") }
-                                Text(t("Профиль подтверждён Telegram Login", "Profile verified by Telegram Login"), style = MaterialTheme.typography.bodySmall)
-                            }
+                            AccountProfileHeader(profile, console.language)
                             if (state.destination == AppDestination.PROFILE) {
                                 AccountCard(t("Хранение и выход", "Storage and sign out")) {
                                     Text(t("Сессия аккаунта хранится на телефоне зашифрованной и исключена из резервного копирования. Токены ботов остаются только в памяти.", "The account session is stored encrypted on this phone and excluded from backups. Bot tokens stay in memory only."))
@@ -190,44 +188,60 @@ private fun ClientConsentScreen(vm: ConsoleViewModel, session: AccountSessionSta
 private fun BotInventoryScreen(controller: AccountController, state: AccountUiState, language: UiLanguage) {
     fun t(ru: String, en: String) = if (language == UiLanguage.RU) ru else en
     val bot = state.selectedBot
-    if (bot == null) AccountCard(t("Мои боты", "My bots")) {
+    if (bot == null) Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(t("Мои боты", "My bots"), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Text(t("Боты, созданные вашим аккаунтом. Источник: Telegram getOwnedBots.", "Bots created by your account. Source: Telegram getOwnedBots."), style = MaterialTheme.typography.bodySmall)
-        OutlinedTextField(state.query, controller::query, label = { Text(t("Поиск бота", "Find a bot")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-        OutlinedButton(onClick = controller::refreshBots, enabled = state.inventory.phase != InventoryPhase.LOADING) { Icon(painterResource(R.drawable.ic_refresh), null); Spacer(Modifier.width(8.dp)); Text(t("Обновить список", "Refresh list")) }
+        OutlinedTextField(state.query, controller::query, label = { Text(t("Найти бота", "Find a bot")) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+            leadingIcon = { Icon(painterResource(R.drawable.ic_search), null) }, shape = MaterialTheme.shapes.medium)
         InventoryStateText(state.inventory.phase, language)
         val filtered = state.inventory.bots.filter { it.bot.firstName.contains(state.query, true) || it.bot.username.orEmpty().contains(state.query.removePrefix("@"), true) }
         if (state.inventory.phase == InventoryPhase.READY && filtered.isEmpty() && state.inventory.bots.isNotEmpty()) Text(t("По этому запросу ботов нет", "No bots match this search"))
-        filtered.forEach { owned ->
-            OutlinedButton(onClick = { controller.selectBot(owned.bot.id) }, enabled = state.inventory.phase == InventoryPhase.READY, modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.fillMaxWidth()) { Text(owned.bot.firstName); owned.bot.username?.let { Text("@$it", style = MaterialTheme.typography.bodySmall) }; Text(t("Создан вашим аккаунтом", "Created by your account"), style = MaterialTheme.typography.bodySmall) }
-            }
+        filtered.forEach { owned -> key(owned.bot.id) {
+            OwnedBotCard(owned.bot.firstName, owned.bot.username, t("Создан вашим аккаунтом", "Created by your account"),
+                enabled = state.inventory.phase == InventoryPhase.READY, onClick = { controller.selectBot(owned.bot.id) })
+        } }
+        Button(onClick = controller::refreshBots, enabled = state.inventory.phase != InventoryPhase.LOADING,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), shape = MaterialTheme.shapes.medium) {
+            Icon(painterResource(R.drawable.ic_refresh), null); Spacer(Modifier.width(8.dp)); Text(t("Обновить список", "Refresh list"))
         }
         state.inventory.checkedAt?.let { Text(t("Проверено: ", "Checked: ") + it, style = MaterialTheme.typography.bodySmall) }
         state.retryAfter?.let { Text(t("Telegram просит подождать ${it} с перед повтором.", "Telegram asks you to wait ${it}s before retrying.")) }
-    } else AccountCard(bot.bot.username?.let { "@$it" } ?: bot.bot.firstName) {
-        TextButton(onClick = controller::backToBots) { Text(t("Назад к ботам", "Back to bots")) }
-        Text(t("Доступные каналы и группы", "Available channels and groups"), style = MaterialTheme.typography.titleLarge)
+    } else Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        TextButton(onClick = controller::backToBots) {
+            Icon(painterResource(R.drawable.ic_back), null); Spacer(Modifier.width(8.dp)); Text(t("Назад к ботам", "Back to bots"))
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.primaryContainer) {
+                Icon(painterResource(R.drawable.ic_bot), null, tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(12.dp).size(36.dp))
+            }
+            Text(bot.bot.username?.let { "@$it" } ?: bot.bot.firstName, style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+        }
+        Text(t("Доступные каналы и группы", "Available channels and groups"), style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold)
         Text(t("Показаны чаты, доступные вашему аккаунту, где удалось проверить присутствие бота. Недоступные чужие чаты сюда не входят.", "Shows chats available to your account where the bot's membership could be verified. Inaccessible chats are outside this list."), style = MaterialTheme.typography.bodySmall)
         InventoryStateText(state.chatsPhase, language)
         state.chats?.let { chats ->
             for ((type, title) in listOf(true to t("Каналы", "Channels"), false to t("Группы", "Groups"))) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 val items = chats.items.filter { (it.chat.type == "channel") == type }
                 if (items.isEmpty()) Text(t("Проверенных чатов нет", "No verified chats"))
                 items.forEach { item ->
-                    Text(item.chat.title, style = MaterialTheme.typography.titleMedium)
                     val role = when (item.botRole) { "chatMemberStatusCreator" -> t("владелец", "owner"); "chatMemberStatusAdministrator" -> t("администратор", "administrator"); "chatMemberStatusRestricted" -> t("ограничен", "restricted"); else -> t("участник", "member") }
-                    Text(t("Роль бота: ", "Bot role: ") + role, style = MaterialTheme.typography.bodySmall)
                     fun right(value: Boolean?) = when (value) { true -> t("да", "yes"); false -> t("нет", "no"); null -> t("не установлено", "unknown") }
-                    Text(t("Публикация текста: ${right(item.canPost)}; редактирование чужих сообщений: ${right(item.canEdit)}; удаление чужих сообщений: ${right(item.canDelete)}", "Post text: ${right(item.canPost)}; edit others' messages: ${right(item.canEdit)}; delete others' messages: ${right(item.canDelete)}"), style = MaterialTheme.typography.bodySmall)
-                    HorizontalDivider()
+                    key(item.chat.id) {
+                        ChatRoleCard(item.chat.title, t("Роль бота: ", "Bot role: ") + role, channel = type,
+                            permissions = t("Публикация текста: ${right(item.canPost)}; редактирование чужих сообщений: ${right(item.canEdit)}; удаление чужих сообщений: ${right(item.canDelete)}", "Post text: ${right(item.canPost)}; edit others' messages: ${right(item.canEdit)}; delete others' messages: ${right(item.canDelete)}"))
+                    }
                 }
             }
             Text(t("Проверено: ", "Checked: ") + chats.checkedAt, style = MaterialTheme.typography.bodySmall)
             if (chats.inaccessibleCount > 0 || !chats.scanComplete) Text(t("Список неполный: часть чатов недоступна или сканирование ограничено.", "The list is incomplete: some chats are inaccessible or scanning was limited."))
         }
         OutlinedButton(onClick = { controller.selectBot(bot.bot.id) }, enabled = state.chatsPhase != InventoryPhase.LOADING) { Text(t("Обновить чаты", "Refresh chats")) }
-        Button(onClick = controller::openConsole, enabled = state.inventory.phase == InventoryPhase.READY, modifier = Modifier.fillMaxWidth()) { Text(t("Открыть консоль бота", "Open bot console")) }
+        Button(onClick = controller::openConsole, enabled = state.inventory.phase == InventoryPhase.READY, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            shape = MaterialTheme.shapes.medium) { Icon(painterResource(R.drawable.ic_console), null); Spacer(Modifier.width(8.dp)); Text(t("Открыть консоль бота", "Open bot console")) }
         Text(t("Для подключения консоли потребуется токен выбранного бота. Он не подтверждает владение и хранится только в памяти.", "Connecting the console requires the selected bot's token. It does not prove ownership and stays in memory only."), style = MaterialTheme.typography.bodySmall)
     }
 }
@@ -248,7 +262,7 @@ private fun InventoryStateText(phase: InventoryPhase, language: UiLanguage) {
 
 @Composable
 private fun AccountCard(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { Text(title, style = MaterialTheme.typography.titleLarge); content() }
+    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold); content() }
     }
 }
