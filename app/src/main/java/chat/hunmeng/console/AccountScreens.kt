@@ -73,7 +73,7 @@ internal fun AccountAppScreen(vm: ConsoleViewModel, console: ConsoleUiState) {
                 }
             }
         },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        contentWindowInsets = WindowInsets.safeDrawing,
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
             when (state.destination) {

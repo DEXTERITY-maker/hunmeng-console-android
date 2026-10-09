@@ -39,6 +39,17 @@ class ConsoleDeviceTest {
         capture("console-light")
         compose.onNodeWithText("Мои боты").performClick()
         compose.onNodeWithText("После входа откроется раздел „Мои боты“.").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Вернуться в консоль").performScrollTo().assertIsDisplayed()
+        compose.waitForIdle()
+        var safeBottom = 0
+        compose.activityRule.scenario.onActivity { activity ->
+            val view = activity.window.decorView
+            val insets = requireNotNull(ViewCompat.getRootWindowInsets(view))
+                .getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            safeBottom = view.height - insets.bottom
+        }
+        val returnBounds = compose.onNodeWithText("Вернуться в консоль").fetchSemanticsNode().boundsInWindow
+        assertTrue("The login return action overlaps the bottom system inset", returnBounds.bottom <= safeBottom + 1f)
         capture("login-light-details")
         compose.onNodeWithTag("login-brand").performScrollTo().assertIsDisplayed()
         capture("login-light")
