@@ -40,7 +40,6 @@ data class ConsoleUiState(
     val draft: String? = null,
     val draftRecipient: ChatPreview? = null,
     val draftDelivery: String? = null,
-    val versionCheckRequested: Boolean = false,
     val events: List<ConsoleEventRecord> = emptyList(),
     val connectionError: ConsoleText? = null,
     val sendError: ConsoleText? = null,
@@ -453,7 +452,6 @@ class ConsoleController(
     }
 
     fun clearEvents() = update { it.copy(events = emptyList()) }
-    fun checkUpdates() = update { it.copy(versionCheckRequested = true) }
 
 
     fun onBackground() {

@@ -10,8 +10,8 @@ import android.content.res.Configuration
 import android.os.ParcelFileDescriptor
 import android.provider.Settings
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.test.espresso.Espresso.closeSoftKeyboard
 import java.io.File
 import org.junit.Rule
 import org.junit.Test
@@ -77,6 +77,12 @@ class ConsoleDeviceTest {
         setting("settings put secure $key 1")
         try { action() } finally {
             setting(if (previous == null) "settings delete secure $key" else "settings put secure $key $previous")
+        }
+    }
+
+    private fun closeSoftKeyboard() {
+        compose.activityRule.scenario.onActivity { activity ->
+            WindowCompat.getInsetsController(activity.window, activity.window.decorView).hide(WindowInsetsCompat.Type.ime())
         }
     }
 

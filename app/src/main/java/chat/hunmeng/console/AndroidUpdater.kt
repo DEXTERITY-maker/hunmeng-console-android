@@ -28,7 +28,7 @@ internal interface AndroidReleaseSource {
     fun discard(file: File)
 }
 enum class UpdatePhase { IDLE, CHECKING, DOWNLOADING, READY, ERROR }
-data class AndroidUpdateState(val phase: UpdatePhase = UpdatePhase.IDLE, val decision: ReleaseDecision = ReleaseDecision(), val error: ConsoleText? = null)
+data class AndroidUpdateState(val phase: UpdatePhase = UpdatePhase.IDLE, val decision: ReleaseDecision = ReleaseDecision(), val error: ConsoleText? = null, val checkedAt: Instant? = null)
 internal class AndroidUpdateController(
     private val source: AndroidReleaseSource, private val installed: InstalledAndroidApp,
     private val prefs: ConsolePreferences, private val scope: CoroutineScope,
@@ -46,7 +46,7 @@ internal class AndroidUpdateController(
                 val decision = decideRelease(release, installed.versionCode, installed.certificateSha256,
                     prefs.getString("update_later_id", ""), prefs.getString("update_later_at", "")?.let { try { Instant.parse(it) } catch (_: Exception) { null } },
                     prefs.getString("update_seen_installed", ""), Instant.now())
-                _state.value = AndroidUpdateState(decision = decision)
+                _state.value = AndroidUpdateState(decision = decision, checkedAt = Instant.now())
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) { _state.value = _state.value.copy(phase = UpdatePhase.ERROR, error = ConsoleText("Не удалось проверить Android-обновления. Консоль доступна.", "Could not check Android updates. The console remains available.")) }
         }

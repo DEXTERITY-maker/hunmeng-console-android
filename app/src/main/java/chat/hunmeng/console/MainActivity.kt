@@ -121,7 +121,7 @@ private fun HunmengConsole(viewModel: ConsoleViewModel) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController) {
+internal fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController, updates: AndroidUpdateState, onCheckUpdates: () -> Unit) {
     val context = LocalContext.current
     val ru = state.language == UiLanguage.RU
     fun t(ruText: String, enText: String) = if (ru) ruText else enText
@@ -372,10 +372,14 @@ internal fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController) {
                 Text(t("Что изменилось в $DISPLAY_VERSION", "Changes in $DISPLAY_VERSION"), style = MaterialTheme.typography.titleSmall)
                 Text(t("Новый значок приложения: белый робот-терминал на синем фоне. Подготовлены изображения для разных плотностей экрана и адаптивная иконка Android.", "New application icon: a white terminal robot on a blue background. Includes density-specific images and an Android adaptive icon."), style = MaterialTheme.typography.bodySmall)
                 Text(t("В этой сборке: пошаговая диагностика, безопасный отчёт, поиск и фильтры событий с копированием, вкладки и ссылка @BotFather.", "In this build: step-by-step checks, a safe report, event search and filters with copying, tabs and the @BotFather link."), style = MaterialTheme.typography.bodySmall)
-                Text(t("История версий: $DISPLAY_VERSION — пользовательская иконка; v0.0.3beta — первая Android-сборка.", "Version history: $DISPLAY_VERSION — custom application icon; v0.0.3beta — first Android build."), style = MaterialTheme.typography.bodySmall)
-                Text(updateSourceUnavailable.text(state.language), style = MaterialTheme.typography.bodySmall)
-                OutlinedButton(onClick = vm::checkUpdates) { Text(t("Проверить обновления", "Check for updates")) }
-                if (state.versionCheckRequested) Text(t("Проверка не выполнена: источник обновлений не задан.", "Check not performed: no update source is configured."), style = MaterialTheme.typography.bodySmall)
+                Text(t("История Android: $DISPLAY_VERSION — иконка и синхронизация функций; v0.0.3beta — первая Android-сборка.", "Android history: $DISPLAY_VERSION — custom icon and feature synchronization; v0.0.3beta — first Android build."), style = MaterialTheme.typography.bodySmall)
+                Text(androidReleaseSourceExplanation.text(state.language), style = MaterialTheme.typography.bodySmall)
+                OutlinedButton(onClick = onCheckUpdates, enabled = updates.phase !in setOf(UpdatePhase.CHECKING, UpdatePhase.DOWNLOADING),
+                    shape = MaterialTheme.shapes.medium, modifier = Modifier.heightIn(min = 48.dp)) { Text(t("Проверить обновления", "Check for updates")) }
+                if (updates.phase == UpdatePhase.CHECKING) { CircularProgressIndicator(); Text(t("Проверяем Android-выпуски…", "Checking Android releases…")) }
+                updates.error?.let { Text(it.text(state.language), color = MaterialTheme.colorScheme.error) }
+                if (updates.checkedAt != null && updates.phase == UpdatePhase.IDLE && updates.error == null)
+                    Text(t("Проверка Android-выпусков выполнена.", "Android release check completed."), style = MaterialTheme.typography.bodySmall)
             }
 
             SectionCard(t("Версия", "Version")) {

@@ -47,7 +47,7 @@ class ConsoleTextTest {
     @Test fun welcomeAndUpdateNoticeMatchSelectedLanguage() {
         assertEquals("Привет! Напиши /help, чтобы увидеть команды.", defaultWelcome(UiLanguage.RU))
         assertTrue(defaultWelcome(UiLanguage.EN).startsWith("Hi!"))
-        assertTrue(updateSourceUnavailable.text(UiLanguage.RU).startsWith("Проверка обновлений пока не настроена"))
-        assertTrue(updateSourceUnavailable.text(UiLanguage.EN).contains("not configured"))
+        assertTrue(androidReleaseSourceExplanation.text(UiLanguage.RU).startsWith("Проверяем Android-выпуски"))
+        assertTrue(androidReleaseSourceExplanation.text(UiLanguage.EN).contains("website version does not change the installed app"))
     }
 }

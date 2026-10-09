@@ -75,7 +75,7 @@ internal fun AccountAppScreen(vm: ConsoleViewModel, console: ConsoleUiState) {
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
             when (state.destination) {
-                AppDestination.CONSOLE -> ConsoleScreen(console, vm.console)
+                AppDestination.CONSOLE -> ConsoleScreen(console, vm.console, update, vm.updates::check)
                 AppDestination.MY_BOTS, AppDestination.PROFILE -> Column(
                     Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),

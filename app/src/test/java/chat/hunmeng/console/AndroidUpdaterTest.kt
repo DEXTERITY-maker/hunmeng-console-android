@@ -26,6 +26,7 @@ class AndroidUpdaterTest {
     @Test fun checkingDoesNotDownloadAndIncompatibleCertificateCannotInstall() = runTest {
         val source = Source(); val controller = AndroidUpdateController(source, InstalledAndroidApp(2, "c".repeat(64)), Preferences(), this)
         controller.check(); yield()
+        assertNotNull(controller.state.value.checkedAt)
         assertNotNull(controller.state.value.decision.available); assertEquals(0, source.downloaded)
         controller.download(); yield(); assertEquals(0, source.downloaded); assertNull(controller.preparedFile())
     }
@@ -40,6 +41,7 @@ class AndroidUpdaterTest {
         val source = Source().apply { failCheck = true }; val prefs = Preferences()
         val controller = AndroidUpdateController(source, InstalledAndroidApp(2, "b".repeat(64)), prefs, this)
         controller.check(); yield(); assertEquals(UpdatePhase.ERROR, controller.state.value.phase)
+        assertNull(controller.state.value.checkedAt)
         source.failCheck = false; controller.check(); yield(); controller.later()
         assertEquals(release().id, prefs.values["update_later_id"]); assertNull(controller.state.value.decision.available)
         val installed = AndroidUpdateController(source, InstalledAndroidApp(3, "b".repeat(64)), prefs, this)
