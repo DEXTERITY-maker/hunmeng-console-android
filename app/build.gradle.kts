@@ -20,6 +20,23 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
+        // Public client ID only. Client Secret belongs exclusively to the server runtime.
+        val loginClientId = providers.gradleProperty("telegramLoginClientId").getOrElse("0")
+        val loginAppId = providers.gradleProperty("telegramLoginAppId").getOrElse(
+            if (loginClientId == "0") "0" else {
+                require(loginClientId == providers.gradleProperty("telegramLoginRegisteredClientId").orNull) {
+                    "Provide telegramLoginAppId for a different OIDC Client ID"
+                }
+                providers.gradleProperty("telegramLoginRegisteredAppId").get()
+            }
+        )
+        require(loginClientId == "0" || Regex("[1-9][0-9]{4,15}").matches(loginClientId))
+        require(loginAppId == "0" || Regex("[1-9][0-9]{4,15}").matches(loginAppId))
+        require((loginClientId == "0") == (loginAppId == "0")) { "Provide both the OIDC Client ID and native App URL ID" }
+        buildConfigField("String", "TELEGRAM_LOGIN_CLIENT_ID", "\"$loginClientId\"")
+        buildConfigField("String", "TELEGRAM_LOGIN_REDIRECT_URI", "\"https://app$loginAppId-login.tg.dev/tglogin\"")
+        buildConfigField("String", "LOGIN_BACKEND_URL", "\"https://telegram-bot-console.hunmeng.chatgpt.site/\"")
+        manifestPlaceholders["telegramLoginHost"] = "app$loginAppId-login.tg.dev"
     }
 
     buildTypes {
@@ -61,6 +78,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.4")
     implementation("androidx.lifecycle:lifecycle-process:2.9.4")
     implementation("androidx.core:core-ktx:1.17.0")
+    implementation("androidx.browser:browser:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
@@ -68,4 +86,8 @@ dependencies {
     testImplementation("org.json:json:20250517")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test:runner:1.7.0")
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }

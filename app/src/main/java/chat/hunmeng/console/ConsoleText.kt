@@ -50,9 +50,9 @@ data class SendPreview(val chat: ChatPreview, val text: String)
 
 const val DISPLAY_VERSION = "v0.0.4beta"
 
-val updateSourceUnavailable = ConsoleText(
-    "Проверка обновлений пока не настроена. Источник новой версии не задан.",
-    "Update checking is not configured yet. No new version source is set.",
+val androidReleaseSourceExplanation = ConsoleText(
+    "Проверяем Android-выпуски. Версия сайта не меняет установленное приложение.",
+    "Checks Android releases. The website version does not change the installed app.",
 )
 
 fun defaultWelcome(language: UiLanguage): String = ConsoleText(

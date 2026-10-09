@@ -1,0 +1,67 @@
+{
+  "ci_run_id": "37998764751",
+  "source_commit": "ee8d7c12e4b1c9073b967d972eba56a773b128c6",
+  "copied_without_editing": true,
+  "images": [
+    {
+      "file": "normal-login-light.png",
+      "source": ".cache/device-checks-37998764751/ui-test-images/normal/debugAndroidTest/connected/emulator-5554 - 15/screenshots/login-light.png",
+      "sha256": "f1bfc852e1f49172d61039f8fa1c8ec7bd22202b5656266d8f0bdd7d69c16a62"
+    },
+    {
+      "file": "normal-console-light.png",
+      "source": ".cache/device-checks-37998764751/ui-test-images/normal/debugAndroidTest/connected/emulator-5554 - 15/screenshots/console-light.png",
+      "sha256": "005f2c281cd7b943b96360a114f6cffac2f01e5532ea8c645c680fa96d90fc14"
+    },
+    {
+      "file": "normal-console-dark.png",
+      "source": ".cache/device-checks-37998764751/ui-test-images/normal/debugAndroidTest/connected/emulator-5554 - 15/screenshots/console-dark.png",
+      "sha256": "0dcec65545832da58c44be557dd81023e46c6aa3b9f68490752f54271668119c"
+    },
+    {
+      "file": "normal-message-dark-details.png",
+      "source": ".cache/device-checks-37998764751/ui-test-images/normal/debugAndroidTest/connected/emulator-5554 - 15/screenshots/message-dark-details.png",
+      "sha256": "bfe38494f89420b1ad65f19bfcbd2fe30c6c8e96488b4747665044539fb7efcc"
+    },
+    {
+      "file": "normal-account-cards-dark.png",
+      "source": ".cache/device-checks-37998764751/ui-test-images/normal/debugAndroidTest/connected/emulator-5554 - 15/screenshots/account-cards-dark.png",
+      "sha256": "830a070c38d288b330ad7330165742ef847b73c010494bea30a13ddb26a356ab"
+    },
+    {
+      "file": "normal-update-light.png",
+      "source": ".cache/device-checks-37998764751/ui-test-images/normal/debugAndroidTest/connected/emulator-5554 - 15/screenshots/update-light.png",
+      "sha256": "79898f6615ac9022cf6e2cb01d841c54e0d522c1516c129e425cebc68d783d36"
+    },
+    {
+      "file": "normal-update-dark.png",
+      "source": ".cache/device-checks-37998764751/ui-test-images/normal/debugAndroidTest/connected/emulator-5554 - 15/screenshots/update-dark.png",
+      "sha256": "1c4e0d7072d7db619524e423a246c6987b11b12e59c0b74e6e314aac2be001e3"
+    },
+    {
+      "file": "normal-message-keyboard.png",
+      "source": ".cache/device-checks-37998764751/ui-test-images/normal/debugAndroidTest/connected/emulator-5554 - 15/screenshots/message-keyboard.png",
+      "sha256": "65181450fe5d7aa00da854ed05538dfde937faf32b219fdf018ce0be5d8fdf9e"
+    },
+    {
+      "file": "large-font-login-light-details.png",
+      "source": ".cache/device-checks-37998764751/ui-test-images/large-font/debugAndroidTest/connected/emulator-5554 - 15/screenshots/login-light-details.png",
+      "sha256": "446cbc4e342c2830ef3180b3c539455c7e35d4052a6d486313b65eb1c34a25d0"
+    },
+    {
+      "file": "large-font-message-keyboard.png",
+      "source": ".cache/device-checks-37998764751/ui-test-images/large-font/debugAndroidTest/connected/emulator-5554 - 15/screenshots/message-keyboard.png",
+      "sha256": "354c26dbdadcbadba672ab6e9c7748566b38d21b82cce2a1e55184ebf584e9e5"
+    },
+    {
+      "file": "large-font-message-landscape.png",
+      "source": ".cache/device-checks-37998764751/ui-test-images/large-font/debugAndroidTest/connected/emulator-5554 - 15/screenshots/message-landscape.png",
+      "sha256": "c2b29953f0341021cd5819dfe2266271b8073a7c156c491aa9593cd9f941aaf6"
+    },
+    {
+      "file": "large-font-update-dark.png",
+      "source": ".cache/device-checks-37998764751/ui-test-images/large-font/debugAndroidTest/connected/emulator-5554 - 15/screenshots/update-dark.png",
+      "sha256": "3b843f7edd83f15a2649f33cb2bf4baca3222d1d47221edac14c6045e060807d"
+    }
+  ]
+}
