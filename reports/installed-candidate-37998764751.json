@@ -1,0 +1,20 @@
+{
+  "package_manager_path_available": true,
+  "installed_apk_readable": true,
+  "installed_apk_size": 60226992,
+  "installed_apk_sha256": "3e7922bdf651d55369fd4395e142b293720f4d4c0c1ad64f6e489094376155fc",
+  "package": "chat.hunmeng.console",
+  "version_code": "2",
+  "version_name": "0.0.4-beta",
+  "signature_verified": true,
+  "certificate_sha256": "d052c3aa276facde5f2bab22713ae76e31fc1b3a1262bc7e6b284df5522a554a",
+  "matches_current_candidate": true,
+  "certificate_matches_candidate": true,
+  "checked_at": "2026-10-09T22:34:46.798257+00:00",
+  "verification_scope": "PackageManager installed base.apk; byte hash, public metadata and signature. UI, account login and in-place update compatibility unverified.",
+  "ci_run_id": "37998764751",
+  "source_commit": "ee8d7c12e4b1c9073b967d972eba56a773b128c6",
+  "ci_url": "https://github.com/DEXTERITY-maker/hunmeng-console-android/actions/runs/37998764751",
+  "ui_reader_probe": "uiautomator did not return a hierarchy; direct launcher exited -9",
+  "live_login_verified": false
+}
