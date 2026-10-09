@@ -13,6 +13,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import java.io.File
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -112,6 +113,23 @@ class ConsoleDeviceTest {
             }
             compose.onNodeWithText(draft).performScrollTo().assertIsDisplayed()
             compose.onNodeWithContentDescription("Разделы").assertIsDisplayed()
+            compose.waitForIdle()
+            var safeLeft = 0
+            var safeRight = 0
+            compose.activityRule.scenario.onActivity { activity ->
+                val view = activity.window.decorView
+                val insets = requireNotNull(ViewCompat.getRootWindowInsets(view))
+                    .getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+                safeLeft = insets.left
+                safeRight = view.width - insets.right
+            }
+            for (description in listOf("Разделы", "Настройки темы", "Выбрать язык")) {
+                val bounds = compose.onNodeWithContentDescription(description).fetchSemanticsNode().boundsInWindow
+                assertTrue("$description overlaps the left system inset", bounds.left >= safeLeft - 1f)
+                assertTrue("$description overlaps the right system inset", bounds.right <= safeRight + 1f)
+            }
+            compose.onNodeWithContentDescription("Выбрать язык").performClick()
+            compose.onNodeWithText("Русский (RU)").performClick()
             compose.onNodeWithText("Предпросмотр").performScrollTo().assertIsDisplayed()
             compose.onNodeWithText("Запустить").assertIsDisplayed().assertIsNotEnabled()
             capture("message-landscape")

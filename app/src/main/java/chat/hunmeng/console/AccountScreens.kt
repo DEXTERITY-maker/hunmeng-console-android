@@ -52,7 +52,9 @@ internal fun AccountAppScreen(vm: ConsoleViewModel, console: ConsoleUiState) {
         }
     }
     Scaffold(
-        modifier = Modifier.imePadding(),
+        modifier = Modifier
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+            .imePadding(),
         topBar = {
             if (!keyboardVisible) ConsoleHeader(console.language,
                 authorization = state.destination != AppDestination.CONSOLE && session.phase == AccountPhase.SIGNED_OUT,
