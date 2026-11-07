@@ -40,7 +40,10 @@ data class ConsoleUiState(
     val draft: String? = null,
     val draftRecipient: ChatPreview? = null,
     val draftDelivery: String? = null,
-    val versionCheckRequested: Boolean = false,
+    val updateStatus: UpdateStatus = UpdateStatus.IDLE,
+    val availableUpdate: AppRelease? = null,
+    val updateDialogVisible: Boolean = false,
+    val updateError: ConsoleText? = null,
     val events: List<ConsoleEventRecord> = emptyList(),
     val connectionError: ConsoleText? = null,
     val sendError: ConsoleText? = null,
@@ -71,6 +74,8 @@ class ConsoleController(
     initialForeground: Boolean = true,
     private val apiFactory: (String) -> TelegramApiClient = ::TelegramApiClient,
     private val clock: () -> Instant = Instant::now,
+    private val releaseSource: UpdateReleaseSource = GithubReleaseSource(),
+    private val installedVersion: String = "0.0.4-beta",
 ) {
     private val _state = MutableStateFlow(loadState())
     val state: StateFlow<ConsoleUiState> = _state.asStateFlow()
@@ -85,6 +90,7 @@ class ConsoleController(
     private var webhookJob: Job? = null
     private var previewJob: Job? = null
     private var sendJob: Job? = null
+    private var updateJob: Job? = null
     private var foreground = initialForeground
     private val handledUpdates = LinkedHashSet<Long>()
 
@@ -183,7 +189,7 @@ class ConsoleController(
         val pendingSend = state.value.sendPreview
         val uncertainSend = state.value.isSending && pendingSend != null
         val oldPolling = polling
-        val jobs = listOfNotNull(connectJob, commandJob, pollingActionJob, webhookJob, previewJob, sendJob)
+        val jobs = listOfNotNull(connectJob, commandJob, pollingActionJob, webhookJob, previewJob, sendJob, updateJob)
         jobs.forEach { it.cancel() }
         api?.close()
         connectingApi?.close()
@@ -417,7 +423,44 @@ class ConsoleController(
     }
 
     fun clearEvents() = update { it.copy(events = emptyList()) }
-    fun checkUpdates() = update { it.copy(versionCheckRequested = true) }
+    /** Silent startup checks respect the user's "Later" choice; manual checks may reopen the notice. */
+    fun checkUpdates(silent: Boolean = false) {
+        if (state.value.updateStatus == UpdateStatus.CHECKING) return
+        update { it.copy(updateStatus = UpdateStatus.CHECKING, availableUpdate = null, updateDialogVisible = false, updateError = null) }
+        updateJob?.cancel()
+        updateJob = scope.launch {
+            try {
+                val release = releaseSource.check(installedVersion)
+                update {
+                    it.copy(
+                        updateStatus = if (release == null) UpdateStatus.UP_TO_DATE else UpdateStatus.AVAILABLE,
+                        availableUpdate = release,
+                        updateDialogVisible = release != null &&
+                            (!silent || prefs.getString("dismissed_release", "") != release.version),
+                    )
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                update {
+                    it.copy(
+                        updateStatus = UpdateStatus.ERROR,
+                        updateError = ConsoleText(
+                            "Не удалось проверить обновления. Проверьте соединение и повторите.",
+                            "Could not check for updates. Check your connection and retry.",
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
+    fun dismissUpdate() {
+        state.value.availableUpdate?.let { prefs.putString("dismissed_release", it.version) }
+        update { it.copy(updateDialogVisible = false) }
+    }
+
+    fun showAvailableUpdate() = update { if (it.availableUpdate != null) it.copy(updateDialogVisible = true) else it }
 
 
     fun onBackground() {
