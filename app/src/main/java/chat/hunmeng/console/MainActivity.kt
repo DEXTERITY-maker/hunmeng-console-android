@@ -289,9 +289,21 @@ private fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController) {
                 Text(t("Новый значок приложения: белый робот-терминал на синем фоне. Подготовлены изображения для разных плотностей экрана и адаптивная иконка Android.", "New application icon: a white terminal robot on a blue background. Includes density-specific images and an Android adaptive icon."), style = MaterialTheme.typography.bodySmall)
                 Text(t("В этой сборке: пошаговая диагностика, безопасный отчёт, поиск и фильтры событий с копированием, вкладки и ссылка @BotFather.", "In this build: step-by-step checks, a safe report, event search and filters with copying, tabs and the @BotFather link."), style = MaterialTheme.typography.bodySmall)
                 Text(t("История версий: $DISPLAY_VERSION — пользовательская иконка; v0.0.3beta — первая Android-сборка.", "Version history: $DISPLAY_VERSION — custom application icon; v0.0.3beta — first Android build."), style = MaterialTheme.typography.bodySmall)
-                Text(updateSourceUnavailable.text(state.language), style = MaterialTheme.typography.bodySmall)
-                OutlinedButton(onClick = vm::checkUpdates) { Text(t("Проверить обновления", "Check for updates")) }
-                if (state.versionCheckRequested) Text(t("Проверка не выполнена: источник обновлений не задан.", "Check not performed: no update source is configured."), style = MaterialTheme.typography.bodySmall)
+                Text(t("Источник: официальные Android-выпуски в GitHub. Бета-версии учитываются.", "Source: official Android releases on GitHub, including betas."), style = MaterialTheme.typography.bodySmall)
+                Text(t("Установлено: ", "Installed: ") + BuildConfig.VERSION_NAME, style = MaterialTheme.typography.bodySmall)
+                when (state.updateStatus) {
+                    UpdateStatus.IDLE -> Text(t("Проверка ещё не выполнялась.", "Updates have not been checked yet."), style = MaterialTheme.typography.bodySmall)
+                    UpdateStatus.CHECKING -> Text(t("Ищем новую версию…", "Looking for a new release…"), style = MaterialTheme.typography.bodySmall)
+                    UpdateStatus.UP_TO_DATE -> Text(t("Доступных более новых Android APK не найдено.", "No newer Android APK is available."), style = MaterialTheme.typography.bodySmall)
+                    UpdateStatus.AVAILABLE -> {
+                        Text(t("Найдена версия: ", "New version: ") + (state.availableUpdate?.version ?: ""), style = MaterialTheme.typography.bodySmall)
+                        TextButton(onClick = vm::showAvailableUpdate) { Text(t("Посмотреть обновление", "View update")) }
+                    }
+                    UpdateStatus.ERROR -> state.updateError?.let { Text(it.text(state.language), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+                }
+                OutlinedButton(onClick = { vm.checkUpdates() }, enabled = state.updateStatus != UpdateStatus.CHECKING) {
+                    Text(if (state.updateStatus == UpdateStatus.CHECKING) t("Проверяем…", "Checking…") else t("Проверить обновления", "Check for updates"))
+                }
             }
 
             SectionCard(t("Версия", "Version")) {
@@ -316,6 +328,31 @@ private fun ConsoleScreen(state: ConsoleUiState, vm: ConsoleController) {
                 }
             },
             confirmButton = { TextButton(onClick = { reportFallback = null }) { Text(t("Закрыть", "Close")) } },
+        )
+    }
+
+    state.availableUpdate?.takeIf { state.updateDialogVisible }?.let { release ->
+        AlertDialog(
+            onDismissRequest = vm::dismissUpdate,
+            title = { Text(t("Доступно обновление", "Update available") + " — " + release.version) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(t("Что нового:", "What's new:"), style = MaterialTheme.typography.titleSmall)
+                    Text(release.notes.ifBlank { t("Описание изменений пока не опубликовано.", "No release notes were published.") })
+                    HorizontalDivider()
+                    Text(t("Откроется официальный APK в GitHub. Для установки поверх приложения подписи сборок должны совпадать. Удалять приложение не требуется и автоматически оно не удаляется.", "The official GitHub APK will open. Updating an installed app requires compatible signing certificates. This app will not uninstall anything."), style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    if (tryOpenLink(release.apkUrl) { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it))) }) {
+                        vm.dismissUpdate()
+                    } else {
+                        Toast.makeText(context, t("Не удалось открыть APK", "Could not open the APK"), Toast.LENGTH_SHORT).show()
+                    }
+                }) { Text(t("Обновить", "Update")) }
+            },
+            dismissButton = { TextButton(onClick = vm::dismissUpdate) { Text(t("Позже", "Later")) } },
         )
     }
 
