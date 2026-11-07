@@ -18,8 +18,11 @@ class ConsoleViewModel(application: Application) : AndroidViewModel(application)
         override fun putString(key: String, value: String) { preferences.edit().putString(key, value).apply() }
         override fun putBoolean(key: String, value: Boolean) { preferences.edit().putBoolean(key, value).apply() }
         override fun remove(key: String) { preferences.edit().remove(key).apply() }
-    }, viewModelScope, lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
-    init { lifecycle.addObserver(this) }
+    }, viewModelScope, lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED), installedVersion = BuildConfig.VERSION_NAME)
+    init {
+        lifecycle.addObserver(this)
+        console.checkUpdates(silent = true)
+    }
     override fun onStop(owner: LifecycleOwner) { console.onBackground() }
     override fun onStart(owner: LifecycleOwner) { console.onForeground() }
     override fun onCleared() {
