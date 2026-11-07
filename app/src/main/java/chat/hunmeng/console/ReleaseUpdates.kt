@@ -86,8 +86,10 @@ internal fun findLatestAndroidUpdate(releases: JSONArray, installedVersion: Stri
     return candidate
 }
 
-private fun numericVersion(version: String): List<Int>? =
-    VERSION_TAG.matchEntire(version)?.groupValues?.drop(1)?.map { it.toIntOrNull() ?: return null }
+private fun numericVersion(version: String): List<Int>? {
+    val match = VERSION_TAG.matchEntire(version) ?: return null
+    return match.groupValues.drop(1).map { it.toIntOrNull() ?: return null }
+}
 
 private fun compareVersions(a: List<Int>, b: List<Int>): Int {
     for (index in 0..2) {
